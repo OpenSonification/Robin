@@ -125,8 +125,7 @@ h1 {
   text-transform: uppercase;
 }
 
-.how-to,
-.shape-controls {
+.how-to {
   margin-top: 2.25rem;
 }
 
@@ -170,51 +169,6 @@ kbd {
   margin: 0.8rem 0 0;
   font-size: 0.72rem;
   line-height: 1.5;
-}
-
-.shape-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.4rem;
-}
-
-.shape-buttons button {
-  min-height: 42px;
-  padding: 0.55rem 0.7rem;
-  display: grid;
-  grid-template-columns: 22px 1fr auto;
-  align-items: center;
-  gap: 0.35rem;
-  text-align: left;
-  font-size: 0.75rem;
-}
-
-.shape-buttons button[aria-pressed="true"] {
-  color: white;
-  background: var(--ink);
-}
-
-.shape-buttons span {
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-.shape-buttons button[aria-pressed="true"] kbd {
-  color: white;
-}
-
-.edit-buttons {
-  margin-top: 0.4rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.4rem;
-}
-
-.edit-buttons button {
-  min-height: 42px;
-  padding: 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 700;
 }
 
 .status {

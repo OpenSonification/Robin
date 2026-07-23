@@ -30,7 +30,6 @@ const statusTitle = document.querySelector("#status-title");
 const statusDetail = document.querySelector("#status-detail");
 const cursorXOutput = document.querySelector("#cursor-x");
 const cursorYOutput = document.querySelector("#cursor-y");
-const addShapeButton = document.querySelector("#add-shape");
 
 let gridCells = new Map();
 let cursorX = 0;
@@ -281,13 +280,6 @@ function eraseAtCursor(focus = false) {
 
 function selectShape(shape) {
   activeShape = shape;
-  document.querySelectorAll("[data-shape]").forEach((button) => {
-    button.setAttribute(
-      "aria-pressed",
-      String(button.dataset.shape === activeShape),
-    );
-  });
-  addShapeButton.textContent = `Add ${activeShape}`;
   setStatus(
     `${shapeLabel(activeShape)} selected.`,
     `Press Shift while in the grid to add it.`,
@@ -367,11 +359,6 @@ function exportProject() {
 }
 
 function bindEvents() {
-  document.querySelectorAll("[data-shape]").forEach((button) => {
-    button.addEventListener("click", () => selectShape(button.dataset.shape));
-  });
-  addShapeButton.addEventListener("click", () => addShapeAtCursor());
-  document.querySelector("#erase-cell").addEventListener("click", () => eraseAtCursor());
   document.querySelector("#clear-grid").addEventListener("click", clearGrid);
   document.querySelector("#export-project").addEventListener("click", exportProject);
   importInput.addEventListener("change", importProject);

@@ -95,9 +95,10 @@ starts.
 | `3` | Sweep plotted shapes by column |
 | `4` | Sweep plotted shapes by row |
 
-The website also provides on-screen controls for drawing, erasing, and shape
-selection. The desktop version additionally supports `Backspace` + arrow keys
-to erase while moving and `Command+N` or `Ctrl+N` to create a named project.
+The website uses the keyboard controls above for drawing, erasing, shape
+selection, and playback. The desktop version additionally supports
+`Backspace` + arrow keys to erase while moving and `Command+N` or `Ctrl+N` to
+create a named project.
 
 ## Shape sounds
 
