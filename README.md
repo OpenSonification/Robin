@@ -43,6 +43,8 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
 
 - The current grid cell receives focus when the page opens, so the arrow keys
   work immediately.
+- Arrow keys also return focus to the grid after any on-screen control is
+  selected.
 - Only the current cell is in the normal tab order, so all 121 cells do not
   create a long tab sequence.
 - A screen reader announces each cell's x and y coordinates, whether it is

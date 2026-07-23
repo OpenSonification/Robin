@@ -60,33 +60,6 @@
           </p>
         </header>
 
-        <section class="how-to" aria-labelledby="how-to-title">
-          <h2 id="how-to-title">How to use it</h2>
-          <dl>
-            <div>
-              <dt><kbd>Arrow keys</kbd></dt>
-              <dd>Move around the grid and hear each position.</dd>
-            </div>
-            <div>
-              <dt><kbd>Shift</kbd></dt>
-              <dd>Add the selected shape to the current cell.</dd>
-            </div>
-            <div>
-              <dt><kbd>Backspace</kbd></dt>
-              <dd>Remove every shape from the current cell.</dd>
-            </div>
-            <div>
-              <dt><kbd>1</kbd> / <kbd>2</kbd></dt>
-              <dd>Play the current row or column.</dd>
-            </div>
-            <div>
-              <dt><kbd>3</kbd> / <kbd>4</kbd></dt>
-              <dd>Play only the plotted shapes by column or row.</dd>
-            </div>
-          </dl>
-          <p class="headphone-note">Headphones make the left-to-right movement easiest to hear.</p>
-        </section>
-
         <section class="shape-controls" aria-labelledby="shape-title">
           <h2 id="shape-title">Selected shape</h2>
           <div class="shape-buttons" aria-label="Choose a shape">
@@ -107,6 +80,57 @@
             <button id="add-shape" type="button">Add circle</button>
             <button id="erase-cell" type="button">Erase current cell</button>
           </div>
+        </section>
+
+        <section class="how-to" aria-labelledby="how-to-title">
+          <h2 id="how-to-title">How to use it</h2>
+          <dl>
+            <div>
+              <dt><kbd>Arrow keys</kbd></dt>
+              <dd>Move around the grid from anywhere on the page.</dd>
+            </div>
+            <div>
+              <dt><kbd>S C T D</kbd></dt>
+              <dd>Select square, circle, triangle, or diamond.</dd>
+            </div>
+            <div>
+              <dt><kbd>Shift</kbd></dt>
+              <dd>Add the selected shape to the current cell.</dd>
+            </div>
+            <div>
+              <dt><kbd>Shift</kbd> + arrows</dt>
+              <dd>Add the selected shape while moving.</dd>
+            </div>
+            <div>
+              <dt><kbd>Backspace</kbd></dt>
+              <dd>Remove every shape from the current cell.</dd>
+            </div>
+            <div>
+              <dt><kbd>1</kbd></dt>
+              <dd>Play the current row from left to right.</dd>
+            </div>
+            <div>
+              <dt><kbd>2</kbd></dt>
+              <dd>Play the current column from bottom to top.</dd>
+            </div>
+            <div>
+              <dt><kbd>3</kbd></dt>
+              <dd>Play only plotted shapes, one column at a time.</dd>
+            </div>
+            <div>
+              <dt><kbd>4</kbd></dt>
+              <dd>Play only plotted shapes, one row at a time.</dd>
+            </div>
+            <div>
+              <dt><kbd>Tab</kbd></dt>
+              <dd>Move between the controls on the left.</dd>
+            </div>
+            <div>
+              <dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt>
+              <dd>Use the button that currently has focus.</dd>
+            </div>
+          </dl>
+          <p class="headphone-note">Headphones make the left-to-right movement easiest to hear.</p>
         </section>
 
         <div class="status" role="status" aria-live="polite" aria-atomic="true">

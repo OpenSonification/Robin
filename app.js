@@ -389,7 +389,7 @@ function handleKeyDown(event) {
   };
   const inGrid = event.target instanceof Element && event.target.closest("#sound-grid");
 
-  if (directions[event.key] && inGrid) {
+  if (directions[event.key]) {
     event.preventDefault();
     const [dx, dy] = directions[event.key];
     moveCursor(dx, dy, event.shiftKey ? "draw" : "move");
