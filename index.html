@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Robin is an accessible sound grid for drawing and hearing scatter plots."
+    >
+    <meta name="theme-color" content="#f7f7f2">
+    <title>Robin — an accessible sound grid</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>
+
+    <main>
+      <section class="map-panel" aria-labelledby="map-title">
+        <header class="map-header">
+          <h2 id="map-title">Map</h2>
+          <p>
+            x <strong id="cursor-x">0</strong>,
+            y <strong id="cursor-y">0</strong>
+          </p>
+        </header>
+
+        <p class="visually-hidden" id="grid-help">
+          This is an 11 by 11 grid from minus 5 to 5 on both axes. Use the
+          arrow keys to move. Each cell announces its x and y coordinates and
+          any shapes it contains.
+        </p>
+
+        <div class="grid-layout">
+          <div class="y-axis" id="y-axis" aria-hidden="true"></div>
+          <div
+            class="sound-grid"
+            id="sound-grid"
+            role="grid"
+            aria-label="Robin sound grid"
+            aria-describedby="grid-help"
+            aria-rowcount="11"
+            aria-colcount="11"
+            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace"
+            tabindex="-1"
+          ></div>
+          <div class="x-axis" id="x-axis" aria-hidden="true"></div>
+          <span class="x-label" aria-hidden="true">x</span>
+          <span class="y-label" aria-hidden="true">y</span>
+        </div>
+      </section>
+
+      <section class="instructions" aria-labelledby="robin-title">
+        <header>
+          <p class="wordmark" id="robin-title">Robin</p>
+          <p class="introduction">
+            Robin is an 11 by 11 sound grid. Moving up raises the pitch.
+            Moving left or right moves the sound between your headphones.
+          </p>
+        </header>
+
+        <section class="how-to" aria-labelledby="how-to-title">
+          <h2 id="how-to-title">How to use it</h2>
+          <dl>
+            <div>
+              <dt><kbd>Arrow keys</kbd></dt>
+              <dd>Move around the grid and hear each position.</dd>
+            </div>
+            <div>
+              <dt><kbd>Shift</kbd></dt>
+              <dd>Add the selected shape to the current cell.</dd>
+            </div>
+            <div>
+              <dt><kbd>Backspace</kbd></dt>
+              <dd>Remove every shape from the current cell.</dd>
+            </div>
+            <div>
+              <dt><kbd>1</kbd> / <kbd>2</kbd></dt>
+              <dd>Play the current row or column.</dd>
+            </div>
+            <div>
+              <dt><kbd>3</kbd> / <kbd>4</kbd></dt>
+              <dd>Play only the plotted shapes by column or row.</dd>
+            </div>
+          </dl>
+          <p class="headphone-note">Headphones make the left-to-right movement easiest to hear.</p>
+        </section>
+
+        <section class="shape-controls" aria-labelledby="shape-title">
+          <h2 id="shape-title">Selected shape</h2>
+          <div class="shape-buttons" aria-label="Choose a shape">
+            <button data-shape="square" aria-pressed="false" type="button">
+              <span aria-hidden="true">□</span> Square <kbd>S</kbd>
+            </button>
+            <button data-shape="circle" aria-pressed="true" type="button">
+              <span aria-hidden="true">○</span> Circle <kbd>C</kbd>
+            </button>
+            <button data-shape="triangle" aria-pressed="false" type="button">
+              <span aria-hidden="true">△</span> Triangle <kbd>T</kbd>
+            </button>
+            <button data-shape="diamond" aria-pressed="false" type="button">
+              <span aria-hidden="true">◇</span> Diamond <kbd>D</kbd>
+            </button>
+          </div>
+          <div class="edit-buttons">
+            <button id="add-shape" type="button">Add circle</button>
+            <button id="erase-cell" type="button">Erase current cell</button>
+          </div>
+        </section>
+
+        <div class="status" role="status" aria-live="polite" aria-atomic="true">
+          <strong id="status-title">Current position: x 0, y 0</strong>
+          <span id="status-detail">This cell contains one circle.</span>
+        </div>
+
+        <div class="file-actions" aria-label="File controls">
+          <label>
+            Open JSON
+            <input id="import-project" type="file" accept=".json,application/json">
+          </label>
+          <button id="export-project" type="button">Save JSON</button>
+          <button id="clear-grid" type="button">Clear map</button>
+        </div>
+        <p class="save-note">
+          Your map saves automatically in this browser. JSON files also work
+          with the Python version.
+        </p>
+      </section>
+
+    </main>
+  </body>
+</html>
