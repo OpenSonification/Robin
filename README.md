@@ -88,14 +88,15 @@ starts.
 | Key | Action |
 | --- | --- |
 | Arrow keys | Move one cell and hear its position |
-| `Shift` | Draw the active shape on the current cell |
-| `Shift` + arrow keys | Draw while moving |
-| `Backspace` | Erase the current cell |
+| `Shift` | Plot the active shape on the current cell |
+| `Shift` + arrow keys | Plot while moving |
+| `Backspace` | Erase the most recently plotted point in the cell |
 | `S` / `C` / `T` / `D` | Select square / circle / triangle / diamond |
 | `1` | Play the current row from left to right |
 | `2` | Play the current column from bottom to top |
 | `3` | Sweep plotted shapes by column |
 | `4` | Sweep plotted shapes by row |
+| `Space` | Turn the display black or restore the graphics |
 
 The desktop website uses the keyboard controls above for drawing, erasing,
 shape selection, and playback. The Python version additionally supports
@@ -108,9 +109,11 @@ On iOS and other touch devices:
 
 - Tap a map cell directly or use the four movement buttons.
 - Choose a shape from the native shape menu.
-- Use **Plot shape** or **Erase cell** at the selected coordinates.
+- Use **Plot shape** or **Erase last point** at the selected coordinates.
 - Use the four playback buttons to hear a row, column, plotted columns, or
   plotted rows.
+- Use **Turn screen off** for presentation mode, then tap the black screen to
+  restore it.
 
 ## Shape sounds
 
@@ -122,7 +125,14 @@ On iOS and other touch devices:
 | Diamond | Four bright sparkles |
 
 The sound for a plotted shape changes pitch with its row and pans with its
-column. Multiple shapes can be layered on the same cell.
+column. Multiple shapes can be layered on the same cell. Repeated instances of
+the same shape are stored and drawn separately but sound once, preventing an
+accidental volume increase. The highest plotted row is slightly pitch-trimmed
+to keep its shape sounds comfortable.
+
+Erasing removes only the most recently plotted point in a cell and plays a
+short bin sound. Presentation mode plays a falling chime when the display turns
+black and a rising chime when it returns.
 
 ## Publish with GitHub Pages
 

@@ -41,7 +41,7 @@
             aria-describedby="grid-help"
             aria-rowcount="11"
             aria-colcount="11"
-            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace"
+            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace S C T D 1 2 3 4 Space"
             tabindex="-1"
           ></div>
           <div class="x-axis" id="x-axis" aria-hidden="true"></div>
@@ -92,8 +92,11 @@
 
         <div class="mobile-edit-actions">
           <button id="mobile-plot" type="button">Plot circle</button>
-          <button id="mobile-erase" type="button">Erase cell</button>
+          <button id="mobile-erase" type="button">Erase last point</button>
         </div>
+        <button class="mobile-blackout-toggle" id="mobile-blackout" type="button">
+          Turn screen off
+        </button>
 
         <section class="mobile-playback" aria-labelledby="mobile-playback-title">
           <h3 id="mobile-playback-title">Listen across the map</h3>
@@ -136,7 +139,7 @@
             </div>
             <div>
               <dt><kbd>Backspace</kbd></dt>
-              <dd>Remove every shape from the current cell.</dd>
+              <dd>Remove the most recently plotted point in the cell.</dd>
             </div>
             <div>
               <dt><kbd>1</kbd></dt>
@@ -155,6 +158,10 @@
               <dd>Play only plotted shapes, one row at a time.</dd>
             </div>
             <div>
+              <dt><kbd>Space</kbd></dt>
+              <dd>Turn the screen black or restore the graphics.</dd>
+            </div>
+            <div>
               <dt><kbd>Tab</kbd></dt>
               <dd>Move between the controls on the left.</dd>
             </div>
@@ -168,7 +175,7 @@
 
         <div class="status" role="status" aria-live="polite" aria-atomic="true">
           <strong id="status-title">x 0, y 0</strong>
-          <span id="status-detail">1 circle</span>
+          <span id="status-detail" hidden></span>
         </div>
 
         <div class="file-actions" aria-label="File controls">
@@ -186,5 +193,8 @@
       </section>
 
     </main>
+    <button class="blackout-screen" id="blackout-screen" type="button" hidden>
+      <span class="visually-hidden">Screen is off. Tap to turn it back on.</span>
+    </button>
   </body>
 </html>

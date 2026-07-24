@@ -11,6 +11,7 @@ root_freq = 130.81
 cell_size = 34
 window_size = (480, 540)
 pentatonic_steps = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24]
+top_trim = 0.97
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 projects_dir = os.path.join(script_dir, "robin projects")
@@ -23,6 +24,7 @@ active_shape = "circle"
 current_project = None
 naming_mode = False
 name_buffer = ""
+blackout = False
 
 
 def clamp_value(value, low, high):
@@ -41,7 +43,11 @@ def row_to_pitch_ratio(row):
     index = row + 5
     centre_semitones = pentatonic_steps[5]
     semitones = pentatonic_steps[index] - centre_semitones
-    return 2 ** (semitones / 12)
+    ratio = 2 ** (semitones / 12)
+    if row == grid_max:
+        # Ease the highest plotted sounds slightly so they do not sound sharp.
+        ratio = ratio * top_trim
+    return ratio
 
 
 def col_to_pan(col):
@@ -165,6 +171,45 @@ def draw_click():
     return noise * envelope * 0.12
 
 
+def bin_sound():
+    thud = make_pure_tone(90, 0.09, 0.35, attack=0.02, release=0.6)
+    rattle_len = int(sample_rate * 0.05)
+    rattle = np.random.uniform(-1, 1, rattle_len)
+    rattle = rattle * make_envelope(rattle_len, 0.05, 0.8) * 0.15
+    gap = np.zeros(int(sample_rate * 0.01))
+    return np.concatenate([thud, gap, rattle])
+
+
+def play_bin(x):
+    stereo = pan_wave(bin_sound(), col_to_pan(x))
+    to_sound(stereo).play()
+
+
+def dark_sound():
+    high = make_pure_tone(500, 0.07, 0.3, attack=0.02, release=0.5)
+    low = make_pure_tone(260, 0.09, 0.3, attack=0.02, release=0.6)
+    gap = np.zeros(int(sample_rate * 0.01))
+    return np.concatenate([high, gap, low])
+
+
+def light_sound():
+    low = make_pure_tone(260, 0.07, 0.3, attack=0.02, release=0.5)
+    high = make_pure_tone(500, 0.09, 0.3, attack=0.02, release=0.6)
+    gap = np.zeros(int(sample_rate * 0.01))
+    return np.concatenate([low, gap, high])
+
+
+def play_toggle():
+    wave = dark_sound() if blackout else light_sound()
+    stereo = pan_wave(wave, 0)
+    to_sound(stereo).play()
+
+
+def unique_shapes(shapes):
+    # Preserve the plotting order but do not make repeated shapes sound louder.
+    return list(dict.fromkeys(shapes))
+
+
 def plotted_stereo(x, y):
     shapes = grid_cells.get((x, y))
     if not shapes:
@@ -172,7 +217,7 @@ def plotted_stereo(x, y):
     pan = col_to_pan(x)
     pitch_ratio = row_to_pitch_ratio(y)
     combined = None
-    for shape in shapes:
+    for shape in unique_shapes(shapes):
         overlay = shape_sounds[shape](pitch_ratio)
         combined = overlay if combined is None else mix_waves(combined, overlay)
     return pan_wave(combined, pan)
@@ -183,7 +228,7 @@ def cell_stereo(x, y):
     pan = col_to_pan(x)
     pitch_ratio = row_to_pitch_ratio(y)
     base = make_tone(freq, 0.22, 0.45)
-    for shape in grid_cells.get((x, y), []):
+    for shape in unique_shapes(grid_cells.get((x, y), [])):
         overlay = shape_sounds[shape](pitch_ratio)
         base = mix_waves(base, overlay)
     return pan_wave(base, pan)
@@ -265,8 +310,12 @@ def draw_here():
 
 
 def clear_here():
-    if (cursor_x, cursor_y) in grid_cells:
-        del grid_cells[(cursor_x, cursor_y)]
+    shapes = grid_cells.get((cursor_x, cursor_y))
+    if shapes:
+        shapes.pop()
+        if not shapes:
+            del grid_cells[(cursor_x, cursor_y)]
+        play_bin(cursor_x)
     play_cell(cursor_x, cursor_y, False)
     save_project()
 
@@ -331,6 +380,12 @@ def sweep_rows(screen):
             to_sound(combined).play()
         draw_grid(screen)
         pygame.time.wait(160)
+
+
+def toggle_blackout():
+    global blackout
+    blackout = not blackout
+    play_toggle()
 
 
 def start_naming():
@@ -403,6 +458,8 @@ def handle_key(event, screen):
         sweep_columns(screen)
     elif event.key == pygame.K_4:
         sweep_rows(screen)
+    elif event.key == pygame.K_SPACE:
+        toggle_blackout()
 
 
 shape_colour = (230, 230, 240)
@@ -446,6 +503,10 @@ def draw_status(screen, font):
 
 
 def draw_grid(screen):
+    if blackout:
+        screen.fill((0, 0, 0))
+        pygame.display.flip()
+        return
     screen.fill(background_colour)
     for gx in range(grid_min, grid_max + 1):
         for gy in range(grid_min, grid_max + 1):

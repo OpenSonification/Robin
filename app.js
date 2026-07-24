@@ -4,6 +4,7 @@ const GRID_MIN = -5;
 const GRID_MAX = 5;
 const GRID_COUNT = 11;
 const ROOT_FREQUENCY = 130.81;
+const TOP_TRIM = 0.97;
 const PENTATONIC_STEPS = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
 const VALID_SHAPES = ["square", "circle", "triangle", "diamond"];
 const SHAPE_SYMBOLS = {
@@ -16,13 +17,7 @@ const STORAGE_KEY = "robin-grid-v2";
 const OLD_STORAGE_KEY = "robin-projects-v1";
 const OLD_CURRENT_KEY = "robin-current-project-v1";
 
-const demoPoints = [
-  { x: 4, y: 4, shapes: ["circle"] },
-  { x: 4, y: 3, shapes: ["circle"] },
-  { x: 3, y: 2, shapes: ["circle"] },
-  { x: 0, y: 1, shapes: ["circle"] },
-  { x: 0, y: 0, shapes: ["circle"] },
-];
+const demoPoints = [];
 
 const grid = document.querySelector("#sound-grid");
 const importInput = document.querySelector("#import-project");
@@ -32,6 +27,8 @@ const cursorXOutput = document.querySelector("#cursor-x");
 const cursorYOutput = document.querySelector("#cursor-y");
 const mobileShapeSelect = document.querySelector("#mobile-shape");
 const mobilePlotButton = document.querySelector("#mobile-plot");
+const mobileBlackoutButton = document.querySelector("#mobile-blackout");
+const blackoutScreen = document.querySelector("#blackout-screen");
 const touchInterfaceQuery = window.matchMedia(
   "(hover: none) and (pointer: coarse)",
 );
@@ -42,6 +39,7 @@ let cursorY = 0;
 let activeShape = "circle";
 let audioContext = null;
 let playbackToken = 0;
+let blackout = false;
 
 loadInitialGrid();
 buildAxes();
@@ -218,6 +216,10 @@ function describeShapes(shapes) {
     .join(", ");
 }
 
+function uniqueShapes(shapes) {
+  return [...new Set(shapes)];
+}
+
 function focusCurrentCell() {
   const cell = grid.querySelector(
     `[data-x="${cursorX}"][data-y="${cursorY}"]`,
@@ -269,15 +271,19 @@ function addShapeAtCursor(focus = false) {
 }
 
 function eraseAtCursor(focus = false) {
-  const removed = gridCells.delete(pointKey(cursorX, cursorY));
+  const key = pointKey(cursorX, cursorY);
+  const shapes = gridCells.get(key);
+  const removedShape = shapes?.pop();
+  if (shapes && !shapes.length) gridCells.delete(key);
   saveGrid();
+  if (removedShape) playBin(cursorX);
   playCell(cursorX, cursorY);
   renderGrid({ focus });
   setStatus(
-    removed
-      ? `Cleared x ${cursorX}, y ${cursorY}.`
+    removedShape
+      ? `${shapeLabel(removedShape)} removed from x ${cursorX}, y ${cursorY}.`
       : `Nothing to erase at x ${cursorX}, y ${cursorY}.`,
-    "The position tone has been played.",
+    shapes?.length ? describeShapes(shapes) : "",
   );
 }
 
@@ -384,6 +390,8 @@ function bindEvents() {
   document
     .querySelector("#mobile-erase")
     .addEventListener("click", () => eraseAtCursor(false));
+  mobileBlackoutButton.addEventListener("click", toggleBlackout);
+  blackoutScreen.addEventListener("click", toggleBlackout);
   document.querySelectorAll("[data-mobile-playback]").forEach((button) => {
     button.addEventListener("click", () => {
       runPlayback(button.dataset.mobilePlayback);
@@ -428,6 +436,9 @@ function handleKeyDown(event) {
     event.preventDefault();
     const kinds = { 1: "row", 2: "column", 3: "columns", 4: "rows" };
     runPlayback(kinds[event.key]);
+  } else if (event.code === "Space" && inGrid) {
+    event.preventDefault();
+    toggleBlackout();
   }
 }
 
@@ -446,7 +457,8 @@ function rowFrequency(y) {
 
 function rowPitchRatio(y) {
   const centreStep = PENTATONIC_STEPS[-GRID_MIN];
-  return 2 ** ((PENTATONIC_STEPS[y - GRID_MIN] - centreStep) / 12);
+  const ratio = 2 ** ((PENTATONIC_STEPS[y - GRID_MIN] - centreStep) / 12);
+  return y === GRID_MAX ? ratio * TOP_TRIM : ratio;
 }
 
 function columnPan(x) {
@@ -533,6 +545,61 @@ function scheduleClick(output, start) {
   source.start(start);
 }
 
+function playBin(x) {
+  const audio = ensureAudio();
+  if (!audio) return;
+  const output = createPannedOutput(x);
+  const start = audio.currentTime + 0.01;
+  scheduleTone(output, 90, start, 0.09, 0.28, {
+    attack: 0.003,
+    release: 0.055,
+  });
+
+  const length = Math.floor(audio.sampleRate * 0.05);
+  const buffer = audio.createBuffer(1, length, audio.sampleRate);
+  const channel = buffer.getChannelData(0);
+  for (let index = 0; index < length; index += 1) {
+    channel[index] = (Math.random() * 2 - 1) * (1 - index / length);
+  }
+  const source = audio.createBufferSource();
+  const gain = audio.createGain();
+  source.buffer = buffer;
+  gain.gain.value = 0.12;
+  source.connect(gain);
+  gain.connect(output);
+  source.start(start + 0.1);
+}
+
+function playToggleSound(turningOff) {
+  const audio = ensureAudio();
+  if (!audio) return;
+  const output = createPannedOutput(0);
+  const start = audio.currentTime + 0.01;
+  const first = turningOff ? 500 : 260;
+  const second = turningOff ? 260 : 500;
+  scheduleTone(output, first, start, 0.07, 0.24, {
+    attack: 0.003,
+    release: 0.04,
+  });
+  scheduleTone(output, second, start + 0.08, 0.09, 0.24, {
+    attack: 0.003,
+    release: 0.055,
+  });
+}
+
+function toggleBlackout() {
+  blackout = !blackout;
+  blackoutScreen.hidden = !blackout;
+  mobileBlackoutButton.textContent = blackout
+    ? "Turn screen on"
+    : "Turn screen off";
+  playToggleSound(blackout);
+  setStatus(
+    blackout ? "Screen off." : "Screen on.",
+    blackout ? "Press Space or tap the screen to restore it." : "",
+  );
+}
+
 function scheduleShape(output, shape, pitchRatio, start) {
   if (shape === "square") {
     scheduleHarmonicTone(output, 400 * pitchRatio, start, 0.05, 0.28);
@@ -580,7 +647,7 @@ function playCell(x, y, drawing = false) {
   const output = createPannedOutput(x);
   const start = audio.currentTime + 0.01;
   scheduleHarmonicTone(output, rowFrequency(y), start, 0.22, 0.3);
-  for (const shape of gridCells.get(pointKey(x, y)) || []) {
+  for (const shape of uniqueShapes(gridCells.get(pointKey(x, y)) || [])) {
     scheduleShape(output, shape, rowPitchRatio(y), start);
   }
   if (drawing) scheduleClick(output, start);
@@ -593,7 +660,7 @@ function playPlottedCell(x, y) {
   if (!audio) return;
   const output = createPannedOutput(x);
   const start = audio.currentTime + 0.01;
-  for (const shape of shapes) {
+  for (const shape of uniqueShapes(shapes)) {
     scheduleShape(output, shape, rowPitchRatio(y), start);
   }
 }
