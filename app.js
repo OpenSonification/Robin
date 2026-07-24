@@ -30,6 +30,11 @@ const statusTitle = document.querySelector("#status-title");
 const statusDetail = document.querySelector("#status-detail");
 const cursorXOutput = document.querySelector("#cursor-x");
 const cursorYOutput = document.querySelector("#cursor-y");
+const mobileShapeSelect = document.querySelector("#mobile-shape");
+const mobilePlotButton = document.querySelector("#mobile-plot");
+const touchInterfaceQuery = window.matchMedia(
+  "(hover: none) and (pointer: coarse)",
+);
 
 let gridCells = new Map();
 let cursorX = 0;
@@ -41,7 +46,7 @@ let playbackToken = 0;
 loadInitialGrid();
 buildAxes();
 bindEvents();
-renderGrid({ focus: true });
+renderGrid({ focus: !touchInterfaceQuery.matches });
 announceCurrentCell();
 
 function pointKey(x, y) {
@@ -164,11 +169,9 @@ function renderGrid(options = {}) {
       cell.tabIndex = current ? 0 : -1;
       cell.setAttribute("role", "gridcell");
       cell.setAttribute("aria-colindex", String(x - GRID_MIN + 1));
-      cell.setAttribute("aria-selected", String(current));
-      cell.setAttribute("aria-label", cellLabel(x, y, shapes, current));
+      cell.setAttribute("aria-label", cellLabel(x, y, shapes));
       if (current) {
         cell.classList.add("is-current");
-        cell.setAttribute("aria-current", "location");
       }
       if (x === 0) cell.classList.add("on-y-axis");
       if (y === 0) cell.classList.add("on-x-axis");
@@ -201,13 +204,13 @@ function renderGrid(options = {}) {
   if (focus) focusCurrentCell();
 }
 
-function cellLabel(x, y, shapes, current) {
+function cellLabel(x, y, shapes) {
   const contents = describeShapes(shapes);
-  return `x ${x}, y ${y}, ${contents}${current ? ", current position" : ""}`;
+  return contents ? `x ${x}, y ${y}, ${contents}` : `x ${x}, y ${y}`;
 }
 
 function describeShapes(shapes) {
-  if (!shapes.length) return "empty";
+  if (!shapes.length) return "";
   const counts = new Map();
   for (const shape of shapes) counts.set(shape, (counts.get(shape) || 0) + 1);
   return Array.from(counts.entries())
@@ -235,18 +238,18 @@ function clamp(value) {
   return Math.max(GRID_MIN, Math.min(GRID_MAX, value));
 }
 
-function moveCursor(dx, dy, mode = "move") {
+function moveCursor(dx, dy, mode = "move", focus = true) {
   cancelPlayback();
   cursorX = clamp(cursorX + dx);
   cursorY = clamp(cursorY + dy);
 
   if (mode === "draw") {
-    addShapeAtCursor(true);
+    addShapeAtCursor(focus);
   } else if (mode === "erase") {
-    eraseAtCursor(true);
+    eraseAtCursor(focus);
   } else {
     playCell(cursorX, cursorY);
-    renderGrid({ focus: true });
+    renderGrid({ focus });
     announceCurrentCell();
   }
 }
@@ -260,8 +263,8 @@ function addShapeAtCursor(focus = false) {
   playCell(cursorX, cursorY, true);
   renderGrid({ focus });
   setStatus(
-    `${shapeLabel(activeShape)} added at x ${cursorX}, y ${cursorY}.`,
-    `This cell now contains ${describeShapes(shapes)}.`,
+    `${shapeLabel(activeShape)} plotted at x ${cursorX}, y ${cursorY}.`,
+    describeShapes(shapes),
   );
 }
 
@@ -273,16 +276,20 @@ function eraseAtCursor(focus = false) {
   setStatus(
     removed
       ? `Cleared x ${cursorX}, y ${cursorY}.`
-      : `x ${cursorX}, y ${cursorY} was already empty.`,
+      : `Nothing to erase at x ${cursorX}, y ${cursorY}.`,
     "The position tone has been played.",
   );
 }
 
-function selectShape(shape) {
+function selectShape(shape, interfaceType = "keyboard") {
   activeShape = shape;
+  mobileShapeSelect.value = shape;
+  mobilePlotButton.textContent = `Plot ${shape}`;
   setStatus(
     `${shapeLabel(activeShape)} selected.`,
-    `Press Shift while in the grid to add it.`,
+    interfaceType === "mobile"
+      ? `Use Plot ${shape} to plot it.`
+      : "Press Shift whilst in the grid to plot it.",
   );
 }
 
@@ -292,15 +299,13 @@ function shapeLabel(shape) {
 
 function announceCurrentCell() {
   const shapes = gridCells.get(pointKey(cursorX, cursorY)) || [];
-  setStatus(
-    `Current position: x ${cursorX}, y ${cursorY}.`,
-    `This cell is ${describeShapes(shapes)}.`,
-  );
+  setStatus(`x ${cursorX}, y ${cursorY}.`, describeShapes(shapes));
 }
 
 function setStatus(title, detail) {
   statusTitle.textContent = title;
   statusDetail.textContent = detail;
+  statusDetail.hidden = !detail;
 }
 
 function clearGrid() {
@@ -317,7 +322,7 @@ function clearGrid() {
   cursorY = 0;
   saveGrid();
   renderGrid();
-  setStatus("The map is clear.", "Current position: x 0, y 0.");
+  setStatus("The map is clear. x 0, y 0.", "");
 }
 
 async function importProject() {
@@ -362,11 +367,38 @@ function bindEvents() {
   document.querySelector("#clear-grid").addEventListener("click", clearGrid);
   document.querySelector("#export-project").addEventListener("click", exportProject);
   importInput.addEventListener("change", importProject);
+  document.querySelectorAll("[data-move-x]").forEach((button) => {
+    button.addEventListener("click", () => {
+      moveCursor(
+        Number(button.dataset.moveX),
+        Number(button.dataset.moveY),
+        "move",
+        false,
+      );
+    });
+  });
+  mobileShapeSelect.addEventListener("change", () => {
+    selectShape(mobileShapeSelect.value, "mobile");
+  });
+  mobilePlotButton.addEventListener("click", () => addShapeAtCursor(false));
+  document
+    .querySelector("#mobile-erase")
+    .addEventListener("click", () => eraseAtCursor(false));
+  document.querySelectorAll("[data-mobile-playback]").forEach((button) => {
+    button.addEventListener("click", () => {
+      runPlayback(button.dataset.mobilePlayback);
+    });
+  });
   window.addEventListener("keydown", handleKeyDown);
 }
 
 function handleKeyDown(event) {
-  if (event.target instanceof HTMLInputElement) return;
+  if (
+    event.target instanceof HTMLInputElement ||
+    event.target instanceof HTMLSelectElement
+  ) {
+    return;
+  }
 
   const directions = {
     ArrowUp: [0, 1],
@@ -616,9 +648,6 @@ async function runPlayback(kind) {
   }
 
   if (token === playbackToken) {
-    setStatus(
-      "Playback complete.",
-      `Current position: x ${cursorX}, y ${cursorY}.`,
-    );
+    setStatus("Playback complete.", `x ${cursorX}, y ${cursorY}.`);
   }
 }

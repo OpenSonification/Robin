@@ -27,9 +27,8 @@
         </header>
 
         <p class="visually-hidden" id="grid-help">
-          This is an 11 by 11 grid from minus 5 to 5 on both axes. Use the
-          arrow keys to move. Each cell announces its x and y coordinates and
-          any shapes it contains.
+          This is an 11 by 11 grid from minus 5 to 5 on both axes. Each cell
+          announces its x and y coordinates followed by any shapes it contains.
         </p>
 
         <div class="grid-layout">
@@ -49,6 +48,62 @@
           <span class="x-label" aria-hidden="true">x</span>
           <span class="y-label" aria-hidden="true">y</span>
         </div>
+      </section>
+
+      <section class="mobile-controls" aria-labelledby="mobile-controls-title">
+        <header>
+          <p class="wordmark">Robin</p>
+          <h2 id="mobile-controls-title">Use Robin on mobile</h2>
+          <p>
+            Tap the arrows to move and hear each cell, or tap a cell in the
+            map. Choose a shape, then plot or erase it at the selected
+            coordinates.
+          </p>
+        </header>
+
+        <div class="mobile-dpad" aria-label="Move around the grid">
+          <button class="move-up" data-move-x="0" data-move-y="1" type="button">
+            <span aria-hidden="true">↑</span>
+            <span class="visually-hidden">Move up</span>
+          </button>
+          <button class="move-left" data-move-x="-1" data-move-y="0" type="button">
+            <span aria-hidden="true">←</span>
+            <span class="visually-hidden">Move left</span>
+          </button>
+          <button class="move-right" data-move-x="1" data-move-y="0" type="button">
+            <span aria-hidden="true">→</span>
+            <span class="visually-hidden">Move right</span>
+          </button>
+          <button class="move-down" data-move-x="0" data-move-y="-1" type="button">
+            <span aria-hidden="true">↓</span>
+            <span class="visually-hidden">Move down</span>
+          </button>
+        </div>
+
+        <label class="mobile-shape-label" for="mobile-shape">
+          Shape
+          <select id="mobile-shape">
+            <option value="square">Square</option>
+            <option value="circle" selected>Circle</option>
+            <option value="triangle">Triangle</option>
+            <option value="diamond">Diamond</option>
+          </select>
+        </label>
+
+        <div class="mobile-edit-actions">
+          <button id="mobile-plot" type="button">Plot circle</button>
+          <button id="mobile-erase" type="button">Erase cell</button>
+        </div>
+
+        <section class="mobile-playback" aria-labelledby="mobile-playback-title">
+          <h3 id="mobile-playback-title">Listen across the map</h3>
+          <div>
+            <button data-mobile-playback="row" type="button">Play row</button>
+            <button data-mobile-playback="column" type="button">Play column</button>
+            <button data-mobile-playback="columns" type="button">Plotted columns</button>
+            <button data-mobile-playback="rows" type="button">Plotted rows</button>
+          </div>
+        </section>
       </section>
 
       <section class="instructions" aria-labelledby="robin-title">
@@ -73,11 +128,11 @@
             </div>
             <div>
               <dt><kbd>Shift</kbd></dt>
-              <dd>Add the selected shape to the current cell.</dd>
+              <dd>Plot the selected shape in the focused cell.</dd>
             </div>
             <div>
               <dt><kbd>Shift</kbd> + arrows</dt>
-              <dd>Add the selected shape while moving.</dd>
+              <dd>Plot the selected shape while moving.</dd>
             </div>
             <div>
               <dt><kbd>Backspace</kbd></dt>
@@ -112,8 +167,8 @@
         </section>
 
         <div class="status" role="status" aria-live="polite" aria-atomic="true">
-          <strong id="status-title">Current position: x 0, y 0</strong>
-          <span id="status-detail">This cell contains one circle.</span>
+          <strong id="status-title">x 0, y 0</strong>
+          <span id="status-detail">1 circle</span>
         </div>
 
         <div class="file-actions" aria-label="File controls">

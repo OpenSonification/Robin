@@ -35,23 +35,25 @@ to start again. The JSON format is compatible with the desktop version.
 
 ### Browser accessibility
 
-The website is intentionally a simple two-column page: instructions and
-controls on the left, with the sound grid on the right. In a narrow or portrait
-layout, the grid appears first and the instructions follow beneath it.
+On desktop, the website is a simple two-column page with keyboard instructions
+on the left and the sound grid on the right. On iOS and other touch devices,
+the grid appears first, followed by dedicated mobile controls and concise
+touch instructions. Desktop-only shortcut documentation is hidden there.
 
 The map is a semantic HTML grid rather than a drawing-only canvas:
 
-- The current grid cell receives focus when the page opens, so the arrow keys
-  work immediately.
+- On desktop, the focused grid cell receives focus when the page opens, so the
+  arrow keys work immediately.
 - Arrow keys also return focus to the grid after any on-screen control is
   selected.
 - Only the current cell is in the normal tab order, so all 121 cells do not
   create a long tab sequence.
-- A screen reader announces each cell's x and y coordinates, whether it is
-  empty, and the shapes it contains.
+- A screen reader announces each cell's x and y coordinates followed by any
+  plotted shapes. Empty cells announce only their coordinates.
 - Changes are reported through a polite live status region.
-- Every action is keyboard-accessible and visible focus indicators are
-  provided.
+- Desktop actions are keyboard-accessible; touch devices provide labelled
+  movement, shape, plotting, erasing, and playback controls.
+- Visible focus indicators are provided.
 - Increased-contrast and reduced-motion browser preferences are respected.
 
 ## Run the Python desktop version
@@ -81,7 +83,7 @@ Desktop projects save automatically as JSON files in the `robin projects`
 folder next to `robin.py`. The most recently edited project opens when Robin
 starts.
 
-## Shared controls
+## Desktop keyboard controls
 
 | Key | Action |
 | --- | --- |
@@ -95,10 +97,20 @@ starts.
 | `3` | Sweep plotted shapes by column |
 | `4` | Sweep plotted shapes by row |
 
-The website uses the keyboard controls above for drawing, erasing, shape
-selection, and playback. The desktop version additionally supports
+The desktop website uses the keyboard controls above for drawing, erasing,
+shape selection, and playback. The Python version additionally supports
 `Backspace` + arrow keys to erase while moving and `Command+N` or `Ctrl+N` to
 create a named project.
+
+## Mobile controls
+
+On iOS and other touch devices:
+
+- Tap a map cell directly or use the four movement buttons.
+- Choose a shape from the native shape menu.
+- Use **Plot shape** or **Erase cell** at the selected coordinates.
+- Use the four playback buttons to hear a row, column, plotted columns, or
+  plotted rows.
 
 ## Shape sounds
 
