@@ -50,6 +50,9 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
   create a long tab sequence.
 - A screen reader announces each cell's x and y coordinates followed by any
   plotted shapes. Empty cells announce only their coordinates.
+- On iOS, every map cell is exposed as a native button so VoiceOver users can
+  find cells by touching the map or swiping through it. Double-tapping a cell
+  selects it and plays its sound without requiring VoiceOver to be turned off.
 - Changes are reported through a polite live status region.
 - Desktop actions are keyboard-accessible; touch devices provide labelled
   movement, shape, plotting, erasing, and playback controls.
@@ -107,7 +110,9 @@ create a named project.
 
 On iOS and other touch devices:
 
-- Tap a map cell directly or use the four movement buttons.
+- With VoiceOver on, touch or swipe to a map cell to hear its coordinates and
+  plotted shapes, then double-tap to select and play it.
+- With VoiceOver off, tap a map cell directly or use the four movement buttons.
 - Choose a shape from the native shape menu.
 - Use **Plot shape** or **Erase last point** at the selected coordinates.
 - Use the four playback buttons to hear a row, column, plotted columns, or

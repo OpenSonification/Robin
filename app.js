@@ -44,6 +44,7 @@ let blackout = false;
 loadInitialGrid();
 buildAxes();
 bindEvents();
+configureGridAccessibility();
 renderGrid({ focus: !touchInterfaceQuery.matches });
 announceCurrentCell();
 
@@ -146,15 +147,40 @@ function buildAxes() {
   }
 }
 
+function configureGridAccessibility() {
+  if (touchInterfaceQuery.matches) {
+    // iOS VoiceOver exposes native buttons reliably during touch exploration.
+    // Desktop-style ARIA grid semantics and roving tabindex can otherwise make
+    // cells with tabindex -1 difficult to discover by touching their location.
+    grid.setAttribute("role", "group");
+    grid.setAttribute("aria-label", "Robin sound map");
+    grid.removeAttribute("aria-rowcount");
+    grid.removeAttribute("aria-colcount");
+    grid.removeAttribute("aria-keyshortcuts");
+  } else {
+    grid.setAttribute("role", "grid");
+    grid.setAttribute("aria-label", "Robin sound grid");
+    grid.setAttribute("aria-rowcount", String(GRID_COUNT));
+    grid.setAttribute("aria-colcount", String(GRID_COUNT));
+    grid.setAttribute(
+      "aria-keyshortcuts",
+      "ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace S C T D 1 2 3 4 Space",
+    );
+  }
+}
+
 function renderGrid(options = {}) {
   const { focus = false } = options;
+  const touchGrid = touchInterfaceQuery.matches;
   const fragment = document.createDocumentFragment();
 
   for (let y = GRID_MAX; y >= GRID_MIN; y -= 1) {
     const row = document.createElement("div");
     row.className = "grid-row";
-    row.setAttribute("role", "row");
-    row.setAttribute("aria-rowindex", String(GRID_MAX - y + 1));
+    if (!touchGrid) {
+      row.setAttribute("role", "row");
+      row.setAttribute("aria-rowindex", String(GRID_MAX - y + 1));
+    }
 
     for (let x = GRID_MIN; x <= GRID_MAX; x += 1) {
       const shapes = gridCells.get(pointKey(x, y)) || [];
@@ -164,12 +190,15 @@ function renderGrid(options = {}) {
       cell.className = "grid-cell";
       cell.dataset.x = x;
       cell.dataset.y = y;
-      cell.tabIndex = current ? 0 : -1;
-      cell.setAttribute("role", "gridcell");
-      cell.setAttribute("aria-colindex", String(x - GRID_MIN + 1));
+      cell.tabIndex = touchGrid || current ? 0 : -1;
+      if (!touchGrid) {
+        cell.setAttribute("role", "gridcell");
+        cell.setAttribute("aria-colindex", String(x - GRID_MIN + 1));
+      }
       cell.setAttribute("aria-label", cellLabel(x, y, shapes));
       if (current) {
         cell.classList.add("is-current");
+        cell.setAttribute("aria-current", "true");
       }
       if (x === 0) cell.classList.add("on-y-axis");
       if (y === 0) cell.classList.add("on-x-axis");
@@ -232,8 +261,27 @@ function selectCell(x, y) {
   cursorX = x;
   cursorY = y;
   playCell(x, y);
-  renderGrid({ focus: true });
+  if (touchInterfaceQuery.matches) {
+    updateRenderedCursor();
+  } else {
+    renderGrid({ focus: true });
+  }
   announceCurrentCell();
+}
+
+function updateRenderedCursor() {
+  grid.querySelectorAll(".grid-cell").forEach((cell) => {
+    const current =
+      Number(cell.dataset.x) === cursorX && Number(cell.dataset.y) === cursorY;
+    cell.classList.toggle("is-current", current);
+    if (current) {
+      cell.setAttribute("aria-current", "true");
+    } else {
+      cell.removeAttribute("aria-current");
+    }
+  });
+  cursorXOutput.textContent = cursorX;
+  cursorYOutput.textContent = cursorY;
 }
 
 function clamp(value) {
@@ -397,6 +445,15 @@ function bindEvents() {
       runPlayback(button.dataset.mobilePlayback);
     });
   });
+  const handleTouchInterfaceChange = () => {
+    configureGridAccessibility();
+    renderGrid({ focus: !touchInterfaceQuery.matches });
+  };
+  if (typeof touchInterfaceQuery.addEventListener === "function") {
+    touchInterfaceQuery.addEventListener("change", handleTouchInterfaceChange);
+  } else {
+    touchInterfaceQuery.addListener(handleTouchInterfaceChange);
+  }
   window.addEventListener("keydown", handleKeyDown);
 }
 
