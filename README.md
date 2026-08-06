@@ -185,5 +185,3 @@ Each project is a JSON object containing a `points` list. Every point has an
 
 Both versions can also read older project files that use a single `shape`
 property instead of the `shapes` list.
-
-Update
