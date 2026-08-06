@@ -26,8 +26,10 @@ python3 -m http.server 8000
 Then open <http://localhost:8000> in a modern browser. Stop the server with
 `Ctrl+C`.
 
-The browser version uses the Web Audio API. Your first interaction with the
-grid enables audio. Headphones make the left-to-right panning easiest to hear.
+The browser version uses the Web Audio API. On touch devices, activate
+**Start Robin audio** once before exploring the map; this satisfies mobile
+browser audio restrictions. Headphones make the left-to-right panning easiest
+to hear.
 
 The map saves automatically in that browser's local storage. Use **Save JSON**
 to download a portable project file, **Open JSON** to load one, or **Clear map**
@@ -51,8 +53,15 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
 - A screen reader announces each cell's x and y coordinates followed by any
   plotted shapes. Empty cells announce only their coordinates.
 - On iOS, every map cell is exposed as a native button so VoiceOver users can
-  find cells by touching the map or swiping through it. Double-tapping a cell
-  selects it and plays its sound without requiring VoiceOver to be turned off.
+  find cells by touching the map or swiping through it. Moving VoiceOver focus
+  to a cell plays its position and plotted-shape sounds; double-tapping plots
+  the selected shape.
+- The map overview is available from the **Explain the map** disclosure on
+  touch devices instead of being repeated whenever a cell is selected.
+- Deleting and the four map sweeps are provided as labelled focused-cell
+  controls. Web content cannot create UIKit `UIAccessibilityCustomAction`
+  entries in VoiceOver's Actions rotor, so these native HTML controls provide
+  the interoperable browser equivalent.
 - Changes are reported through a polite live status region.
 - Desktop actions are keyboard-accessible; touch devices provide labelled
   movement, shape, plotting, erasing, and playback controls.
@@ -110,13 +119,16 @@ create a named project.
 
 On iOS and other touch devices:
 
-- With VoiceOver on, touch or swipe to a map cell to hear its coordinates and
-  plotted shapes, then double-tap to select and play it.
-- With VoiceOver off, tap a map cell directly or use the four movement buttons.
+- Activate **Start Robin audio** once, then move VoiceOver focus by touching or
+  swiping to a map cell to hear its position and plotted shapes.
+- Double-tap the focused cell to plot the selected shape.
+- With VoiceOver off, tapping a cell plots the selected shape. The four
+  movement buttons remain available for listening without plotting.
 - Choose a shape from the native shape menu.
-- Use **Plot shape** or **Erase last point** at the selected coordinates.
-- Use the four playback buttons to hear a row, column, plotted columns, or
-  plotted rows.
+- Use **Plot shape** as an alternative plotting control or **Delete last point**
+  to erase the most recently plotted shape at the focused coordinates.
+- Use **Play focused row**, **Play focused column**, **Sweep left to right**, or
+  **Sweep bottom to top** for the four playback modes.
 - Use **Turn screen off** for presentation mode, then tap the black screen to
   restore it.
 

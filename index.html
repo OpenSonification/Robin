@@ -24,6 +24,21 @@
             x <strong id="cursor-x">0</strong>,
             y <strong id="cursor-y">0</strong>
           </p>
+          <div class="map-touch-tools">
+            <button id="audio-start" type="button">
+              Start Robin audio
+            </button>
+            <details class="map-help">
+              <summary>Explain the map</summary>
+              <p>
+                Robin is an 11 by 11 grid from minus 5 to 5 on both axes.
+                Moving up raises the pitch, and moving left or right moves the
+                sound between your headphones. With VoiceOver on, start Robin
+                audio once, then touch or swipe to a cell to hear it.
+                Double-tap the focused cell to plot the selected shape.
+              </p>
+            </details>
+          </div>
         </header>
 
         <p class="visually-hidden" id="grid-help">
@@ -55,10 +70,10 @@
           <p class="wordmark">Robin</p>
           <h2 id="mobile-controls-title">Use Robin on mobile</h2>
           <p>
-            With VoiceOver on, touch or swipe to a map cell to hear its
-            coordinates and plotted shapes, then double-tap to select and play
-            it. You can also use the arrows below to move around the map.
-            Choose a shape, then plot or erase it at the selected coordinates.
+            With VoiceOver on, use Start Robin audio once, then touch or swipe
+            to a map cell to hear its sound. Double-tap the focused cell to
+            plot the selected shape. The controls below provide alternatives
+            for moving, plotting, deleting, and playing across the map.
           </p>
         </header>
 
@@ -93,19 +108,20 @@
 
         <div class="mobile-edit-actions">
           <button id="mobile-plot" type="button">Plot circle</button>
-          <button id="mobile-erase" type="button">Erase last point</button>
+          <button id="mobile-erase" type="button">Delete last point</button>
         </div>
         <button class="mobile-blackout-toggle" id="mobile-blackout" type="button">
           Turn screen off
         </button>
 
         <section class="mobile-playback" aria-labelledby="mobile-playback-title">
-          <h3 id="mobile-playback-title">Listen across the map</h3>
+          <h3 id="mobile-playback-title">Focused cell actions</h3>
+          <p>These actions use the cell most recently focused or selected.</p>
           <div>
-            <button data-mobile-playback="row" type="button">Play row</button>
-            <button data-mobile-playback="column" type="button">Play column</button>
-            <button data-mobile-playback="columns" type="button">Plotted columns</button>
-            <button data-mobile-playback="rows" type="button">Plotted rows</button>
+            <button data-mobile-playback="row" type="button">Play focused row</button>
+            <button data-mobile-playback="column" type="button">Play focused column</button>
+            <button data-mobile-playback="columns" type="button">Sweep left to right</button>
+            <button data-mobile-playback="rows" type="button">Sweep bottom to top</button>
           </div>
         </section>
       </section>

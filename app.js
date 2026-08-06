@@ -20,11 +20,13 @@ const OLD_CURRENT_KEY = "robin-current-project-v1";
 const demoPoints = [];
 
 const grid = document.querySelector("#sound-grid");
+const gridHelp = document.querySelector("#grid-help");
 const importInput = document.querySelector("#import-project");
 const statusTitle = document.querySelector("#status-title");
 const statusDetail = document.querySelector("#status-detail");
 const cursorXOutput = document.querySelector("#cursor-x");
 const cursorYOutput = document.querySelector("#cursor-y");
+const audioStartButton = document.querySelector("#audio-start");
 const mobileShapeSelect = document.querySelector("#mobile-shape");
 const mobilePlotButton = document.querySelector("#mobile-plot");
 const mobileBlackoutButton = document.querySelector("#mobile-blackout");
@@ -40,6 +42,7 @@ let activeShape = "circle";
 let audioContext = null;
 let playbackToken = 0;
 let blackout = false;
+let focusPlaybackTimer = null;
 
 loadInitialGrid();
 buildAxes();
@@ -154,18 +157,22 @@ function configureGridAccessibility() {
     // cells with tabindex -1 difficult to discover by touching their location.
     grid.setAttribute("role", "group");
     grid.setAttribute("aria-label", "Robin sound map");
+    grid.removeAttribute("aria-describedby");
     grid.removeAttribute("aria-rowcount");
     grid.removeAttribute("aria-colcount");
     grid.removeAttribute("aria-keyshortcuts");
+    gridHelp.hidden = true;
   } else {
     grid.setAttribute("role", "grid");
     grid.setAttribute("aria-label", "Robin sound grid");
+    grid.setAttribute("aria-describedby", "grid-help");
     grid.setAttribute("aria-rowcount", String(GRID_COUNT));
     grid.setAttribute("aria-colcount", String(GRID_COUNT));
     grid.setAttribute(
       "aria-keyshortcuts",
       "ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace S C T D 1 2 3 4 Space",
     );
+    gridHelp.hidden = false;
   }
 }
 
@@ -198,28 +205,19 @@ function renderGrid(options = {}) {
       cell.setAttribute("aria-label", cellLabel(x, y, shapes));
       if (current) {
         cell.classList.add("is-current");
-        cell.setAttribute("aria-current", "true");
+        if (!touchGrid) cell.setAttribute("aria-current", "true");
       }
       if (x === 0) cell.classList.add("on-y-axis");
       if (y === 0) cell.classList.add("on-x-axis");
 
-      shapes.slice(0, 4).forEach((shape) => {
-        const symbol = document.createElement("span");
-        symbol.className = "plotted-shape";
-        symbol.textContent = SHAPE_SYMBOLS[shape];
-        symbol.setAttribute("aria-hidden", "true");
-        cell.append(symbol);
-      });
+      renderCellShapes(cell, shapes);
 
-      if (shapes.length > 4) {
-        const more = document.createElement("span");
-        more.className = "shape-more";
-        more.textContent = `+${shapes.length - 4}`;
-        more.setAttribute("aria-hidden", "true");
-        cell.append(more);
+      if (touchGrid) {
+        cell.addEventListener("focus", () => focusTouchCell(x, y));
+        cell.addEventListener("click", () => activateTouchCell(x, y));
+      } else {
+        cell.addEventListener("click", () => selectCell(x, y));
       }
-
-      cell.addEventListener("click", () => selectCell(x, y));
       row.append(cell);
     }
     fragment.append(row);
@@ -229,6 +227,25 @@ function renderGrid(options = {}) {
   cursorXOutput.textContent = cursorX;
   cursorYOutput.textContent = cursorY;
   if (focus) focusCurrentCell();
+}
+
+function renderCellShapes(cell, shapes) {
+  cell.replaceChildren();
+  shapes.slice(0, 4).forEach((shape) => {
+    const symbol = document.createElement("span");
+    symbol.className = "plotted-shape";
+    symbol.textContent = SHAPE_SYMBOLS[shape];
+    symbol.setAttribute("aria-hidden", "true");
+    cell.append(symbol);
+  });
+
+  if (shapes.length > 4) {
+    const more = document.createElement("span");
+    more.className = "shape-more";
+    more.textContent = `+${shapes.length - 4}`;
+    more.setAttribute("aria-hidden", "true");
+    cell.append(more);
+  }
 }
 
 function cellLabel(x, y, shapes) {
@@ -269,12 +286,40 @@ function selectCell(x, y) {
   announceCurrentCell();
 }
 
+function focusTouchCell(x, y) {
+  cancelPlayback();
+  cursorX = x;
+  cursorY = y;
+  updateRenderedCursor();
+  cancelPendingFocusPlayback();
+  // A short delay prevents a sighted tap from playing twice: its subsequent
+  // click plots the shape and cancels this focus-only playback.
+  focusPlaybackTimer = window.setTimeout(() => {
+    focusPlaybackTimer = null;
+    playCell(x, y);
+  }, 80);
+}
+
+function activateTouchCell(x, y) {
+  cancelPendingFocusPlayback();
+  cursorX = x;
+  cursorY = y;
+  updateRenderedCursor();
+  addShapeAtCursor(false);
+}
+
+function cancelPendingFocusPlayback() {
+  if (focusPlaybackTimer === null) return;
+  window.clearTimeout(focusPlaybackTimer);
+  focusPlaybackTimer = null;
+}
+
 function updateRenderedCursor() {
   grid.querySelectorAll(".grid-cell").forEach((cell) => {
     const current =
       Number(cell.dataset.x) === cursorX && Number(cell.dataset.y) === cursorY;
     cell.classList.toggle("is-current", current);
-    if (current) {
+    if (current && !touchInterfaceQuery.matches) {
       cell.setAttribute("aria-current", "true");
     } else {
       cell.removeAttribute("aria-current");
@@ -282,6 +327,14 @@ function updateRenderedCursor() {
   });
   cursorXOutput.textContent = cursorX;
   cursorYOutput.textContent = cursorY;
+}
+
+function updateRenderedCell(x, y) {
+  const cell = grid.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+  if (!cell) return;
+  const shapes = gridCells.get(pointKey(x, y)) || [];
+  cell.setAttribute("aria-label", cellLabel(x, y, shapes));
+  renderCellShapes(cell, shapes);
 }
 
 function clamp(value) {
@@ -311,7 +364,11 @@ function addShapeAtCursor(focus = false) {
   gridCells.set(key, shapes);
   saveGrid();
   playCell(cursorX, cursorY, true);
-  renderGrid({ focus });
+  if (touchInterfaceQuery.matches) {
+    updateRenderedCell(cursorX, cursorY);
+  } else {
+    renderGrid({ focus });
+  }
   setStatus(
     `${shapeLabel(activeShape)} plotted at x ${cursorX}, y ${cursorY}.`,
     describeShapes(shapes),
@@ -326,7 +383,11 @@ function eraseAtCursor(focus = false) {
   saveGrid();
   if (removedShape) playBin(cursorX);
   playCell(cursorX, cursorY);
-  renderGrid({ focus });
+  if (touchInterfaceQuery.matches) {
+    updateRenderedCell(cursorX, cursorY);
+  } else {
+    renderGrid({ focus });
+  }
   setStatus(
     removedShape
       ? `${shapeLabel(removedShape)} removed from x ${cursorX}, y ${cursorY}.`
@@ -420,6 +481,7 @@ function exportProject() {
 function bindEvents() {
   document.querySelector("#clear-grid").addEventListener("click", clearGrid);
   document.querySelector("#export-project").addEventListener("click", exportProject);
+  audioStartButton.addEventListener("click", startAudio);
   importInput.addEventListener("change", importProject);
   document.querySelectorAll("[data-move-x]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -532,8 +594,40 @@ function ensureAudio() {
     return null;
   }
   if (!audioContext) audioContext = new AudioContext();
-  if (audioContext.state === "suspended") audioContext.resume();
+  if (audioContext.state === "suspended") {
+    audioContext.resume().then(markAudioStarted).catch(() => {});
+  } else if (audioContext.state === "running") {
+    markAudioStarted();
+  }
   return audioContext;
+}
+
+async function startAudio() {
+  const audio = ensureAudio();
+  if (!audio) return;
+  try {
+    if (audio.state === "suspended") await audio.resume();
+    markAudioStarted();
+    playCell(cursorX, cursorY);
+    setStatus(
+      "Robin audio is on.",
+      "Touch or swipe to a map cell with VoiceOver to hear it.",
+    );
+  } catch {
+    setStatus(
+      "Robin could not start audio.",
+      "Try activating Start Robin audio again.",
+    );
+  }
+}
+
+function markAudioStarted() {
+  if (!audioStartButton || audioContext?.state !== "running") return;
+  audioStartButton.textContent = "Replay focused cell";
+  audioStartButton.setAttribute(
+    "aria-label",
+    "Robin audio is on. Replay focused cell",
+  );
 }
 
 function createPannedOutput(x) {
