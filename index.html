@@ -11,6 +11,19 @@
     <title>Robin — an accessible sound grid</title>
     <script>
       (() => {
+        // Robin no longer persists website maps. Clear keys written by older
+        // releases before any cached external script has a chance to read them.
+        try {
+          [
+            "robin-grid-v2",
+            "robin-starter-version",
+            "robin-projects-v1",
+            "robin-current-project-v1",
+          ].forEach((key) => localStorage.removeItem(key));
+        } catch {
+          // The map still starts normally when browser storage is unavailable.
+        }
+
         const coarseTouch = window.matchMedia(
           "(hover: none) and (pointer: coarse)",
         ).matches;
@@ -23,7 +36,7 @@
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
-    <script src="app.js" defer></script>
+    <script src="app.js?v=20260807-ios-reset" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>

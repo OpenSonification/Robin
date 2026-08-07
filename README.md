@@ -35,6 +35,8 @@ Every page load starts from Robin's two-point example; the website does not
 restore or autosave browser state. Use **Save JSON** before leaving to download
 a portable project file, **Open JSON** to load one during a session, or **Clear
 map** to start again. The JSON format is compatible with the desktop version.
+Older Robin storage is removed before the application script runs, and an iOS
+page restored from WebKit's back-forward cache also returns to the example.
 
 ### Browser accessibility
 
