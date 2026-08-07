@@ -60,8 +60,9 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
   find cells by touching the map or swiping through it. Moving VoiceOver focus
   to a cell always plays its position tone, including when the cell is empty;
   plotted-shape sounds are layered on top. Double-tapping plots the selected
-  shape. Every touch cell has the same minimal **Sound** label, so VoiceOver
-  does not speak coordinates or shape descriptions over Robin's audio.
+  shape. Touch cells have no spoken coordinate or shape label, and Robin waits
+  briefly for VoiceOver's native **button** announcement to finish before
+  playing the cell audio.
 - The map overview is available from the **Explain the map** disclosure on
   touch devices instead of being repeated whenever a cell is selected.
 - Deleting and the four map sweeps are provided as labelled focused-cell
@@ -135,9 +136,10 @@ On iOS and other touch devices:
   then plays each crossed cell; double-tapping a cell plots the selected shape.
 - With VoiceOver on, move focus by touching or swiping to a map cell to hear
   its position tone. If iOS has not started web audio yet, the first cell
-  activation starts it; later focus changes play immediately. Use VoiceOver's
-  double-tap to plot the selected shape. An empty cell plays the position tone
-  by itself, while plotted cells layer their shape sounds over it.
+  activation starts it. Robin briefly delays the tone after focus so VoiceOver
+  can finish saying "button" first. Use VoiceOver's double-tap to plot the
+  selected shape. An empty cell plays the position tone by itself, while
+  plotted cells layer their shape sounds over it.
 - The four directional buttons are intentionally omitted; movement happens
   directly on the grid.
 - Choose a shape from the native shape menu.

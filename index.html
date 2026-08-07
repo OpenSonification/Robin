@@ -36,7 +36,7 @@
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
-    <script src="app.js?v=20260807-touchend-audio" defer></script>
+    <script src="app.js?v=20260807-voiceover-audio-delay" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>
@@ -58,8 +58,10 @@
                 sound between your headphones. With VoiceOver off, touch a cell
                 once or drag over the map to hear position tones, then
                 double-tap a cell to plot. With VoiceOver on, touch or swipe to
-                hear cells, then use VoiceOver's double-tap to plot. If iOS has
-                not started web audio yet, the first cell activation starts it.
+                hear cells; Robin waits for VoiceOver to say "button" before
+                playing the sound. Then use VoiceOver's double-tap to plot. If
+                iOS has not started web audio yet, the first cell activation
+                starts it.
                 An empty cell plays its position tone on its own; plotted shapes
                 add their sounds on top.
               </p>
@@ -116,8 +118,10 @@
           </li>
           <li>
             With VoiceOver on, touch or swipe to hear cells, then use
-            VoiceOver's double-tap on the focused cell to plot. If the browser
-            has not yet allowed sound, the first cell activation starts it.
+            VoiceOver's double-tap on the focused cell to plot. Robin briefly
+            delays cell sounds so they follow the "button" announcement. If
+            the browser has not yet allowed sound, the first cell activation
+            starts it.
           </li>
         </ol>
 
