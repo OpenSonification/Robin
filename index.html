@@ -36,7 +36,7 @@
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
-    <script src="app.js?v=20260807-voiceover-audio-delay" defer></script>
+    <script src="app.js?v=20260807-voiceover-plotting" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>
@@ -61,7 +61,7 @@
                 hear cells; Robin waits for VoiceOver to say "button" before
                 playing the sound. Then use VoiceOver's double-tap to plot. If
                 iOS has not started web audio yet, the first cell activation
-                starts it.
+                starts it and plots the selected shape.
                 An empty cell plays its position tone on its own; plotted shapes
                 add their sounds on top.
               </p>
@@ -121,7 +121,7 @@
             VoiceOver's double-tap on the focused cell to plot. Robin briefly
             delays cell sounds so they follow the "button" announcement. If
             the browser has not yet allowed sound, the first cell activation
-            starts it.
+            starts it and plots the selected shape.
           </li>
         </ol>
 
