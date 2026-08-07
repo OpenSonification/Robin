@@ -36,7 +36,7 @@
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
-    <script src="app.js?v=20260807-voiceover-controls-rewrite" defer></script>
+    <script src="app.js?v=20260807-selected-voiceover-action" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>
@@ -74,16 +74,23 @@
                 own; plotted shapes add their sounds on top.
               </p>
             </details>
-            <details
+            <section
               class="voiceover-actions"
               id="voiceover-actions"
+              aria-labelledby="voiceover-actions-title"
               hidden
             >
-              <summary>VoiceOver cell actions</summary>
+              <h3 id="voiceover-actions-title">VoiceOver cell actions</h3>
               <div class="voiceover-actions-body">
                 <p>
                   These actions apply to the most recently focused grid cell.
-                  Circle is active by default, and one shape is always active.
+                  All actions remain visible. Move VoiceOver focus to an
+                  action to select it, then double-tap to run it. The selected
+                  button turns blue. Circle is the default active shape.
+                </p>
+                <p class="voiceover-selected-action">
+                  <strong>Selected action:</strong>
+                  <span id="voiceover-selected-action">Plot circle</span>
                 </p>
                 <label for="voiceover-shape">
                   Active shape
@@ -131,7 +138,7 @@
                   </button>
                 </div>
               </div>
-            </details>
+            </section>
           </div>
         </header>
 

@@ -44,7 +44,7 @@ page restored from WebKit's back-forward cache also returns to the example.
 The same website automatically selects one of two separate interfaces. Desktop
 browsers receive the keyboard interface, with shortcut instructions beside the
 map. Touchscreen phones and tablets receive the touch interface, with the map
-first and a dedicated VoiceOver actions disclosure immediately above it. The
+first and a dedicated VoiceOver actions panel immediately above it. The
 inactive interface is removed from the layout and accessibility tree, rather
 than merely having its instructions reworded.
 
@@ -69,8 +69,10 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
 - The map overview is available from the **Explain the map** disclosure on
   touch devices instead of being repeated whenever a cell is selected.
 - Shape selection, plotting, deleting, and the four map sweeps are exposed as
-  native labelled controls in the **VoiceOver cell actions** disclosure above
-  the grid while VoiceOver mode is on. Web content cannot create UIKit
+  native labelled controls in the always-expanded **VoiceOver cell actions**
+  panel above the grid while VoiceOver mode is on. Moving focus to an action
+  turns that button blue and updates the visible **Selected action** text;
+  double-tapping runs it. Web content cannot create UIKit
   `UIAccessibilityCustomAction` entries in VoiceOver's Actions rotor, so these
   controls provide the interoperable browser equivalent while preserving the
   focused grid coordinates.

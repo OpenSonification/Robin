@@ -529,36 +529,26 @@ html[data-interface="touch"] .voiceover-mode-toggle[aria-pressed="true"] {
 
 html[data-interface="touch"] .voiceover-actions {
   flex-basis: 100%;
-  display: block;
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.75rem;
+  border: 2px solid var(--ink);
 }
 
 html[data-interface="touch"] .voiceover-actions[hidden] {
   display: none;
 }
 
-html[data-interface="touch"] .voiceover-actions summary {
-  width: fit-content;
-  min-height: 2.75rem;
-  padding: 0.6rem 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--line-strong);
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-html[data-interface="touch"] .voiceover-actions summary:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
+html[data-interface="touch"] .voiceover-actions h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 html[data-interface="touch"] .voiceover-actions-body {
-  margin-top: 0.5rem;
-  padding: 0.85rem;
   display: grid;
   gap: 0.75rem;
-  border: 2px solid var(--ink);
 }
 
 html[data-interface="touch"] .voiceover-actions p {
@@ -568,6 +558,15 @@ html[data-interface="touch"] .voiceover-actions p {
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.45;
+}
+
+html[data-interface="touch"] .voiceover-actions .voiceover-selected-action {
+  max-width: none;
+  padding: 0.55rem 0.65rem;
+  color: var(--ink);
+  background: #e8f2ff;
+  border-left: 4px solid var(--focus);
+  font-size: 0.76rem;
 }
 
 html[data-interface="touch"] .voiceover-actions label {
@@ -592,6 +591,16 @@ html[data-interface="touch"] .voiceover-action-buttons {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem;
+}
+
+html[data-interface="touch"] .voiceover-action-buttons .is-selected-action {
+  color: white;
+  background: var(--focus);
+  border-color: var(--focus);
+}
+
+html[data-interface="touch"] .voiceover-action-buttons .is-selected-action:hover {
+  background: #004caa;
 }
 
 html[data-interface="touch"][data-voiceover="on"] [data-standard-touch-actions] {
