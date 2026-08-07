@@ -11,6 +11,7 @@ const DESKTOP_CELL_TONE_VOLUME = 0.3;
 const TOUCH_CELL_TONE_VOLUME = 0.42;
 const TOUCH_EVENT_DEDUPLICATION_MS = 500;
 const DIRECT_DOUBLE_TAP_MS = 450;
+const VOICEOVER_CELL_TONE_DELAY_MS = 1100;
 const VALID_SHAPES = ["square", "circle", "triangle", "diamond"];
 const SHAPE_SYMBOLS = {
   square: "□",
@@ -54,6 +55,9 @@ let audioResumePromise = null;
 let audioUnlocked = false;
 let playbackToken = 0;
 let blackout = false;
+let focusPlaybackTimer = null;
+let delayedCellOutput = null;
+let delayedCellOutputCleanupTimer = null;
 let lastTouchExplorationKey = null;
 let lastTouchExplorationAt = 0;
 let directTouchStartKey = null;
@@ -116,6 +120,7 @@ function loadInitialGrid() {
 }
 
 function restoreStarterMap() {
+  cancelPendingFocusPlayback();
   resetDirectTouchGesture();
   cancelPlayback();
   cursorX = 0;
@@ -311,6 +316,7 @@ function focusTouchCell(x, y, options = {}) {
     immediate = false,
     unlockAudio = false,
     playAudio = true,
+    audioDelayMs = 0,
   } = options;
   const key = pointKey(x, y);
   const now = performance.now();
@@ -328,12 +334,13 @@ function focusTouchCell(x, y, options = {}) {
   cursorX = x;
   cursorY = y;
   updateRenderedCursor();
+  cancelPendingFocusPlayback();
   if (immediate) {
     if (!playAudio) return;
     if (unlockAudio) {
-      playDirectTouchCell(x, y);
+      playDirectTouchCell(x, y, audioDelayMs);
     } else {
-      playCell(x, y);
+      playCell(x, y, false, audioDelayMs);
     }
     return;
   }
@@ -345,17 +352,21 @@ function focusTouchCell(x, y, options = {}) {
   // activating touch/click; later VoiceOver focus can reuse that context.
   if (!audioUnlocked && audioContext?.state !== "running") return;
 
-  // Use the same immediate cell-audio path as a direct touch. This schedules
-  // the tone at the instant VoiceOver moves focus, and also retries a paused
-  // iOS AudioContext instead of silently dropping the focus sound.
-  playDirectTouchCell(x, y);
+  // Browsers do not expose when VoiceOver finishes speaking. Wait briefly so
+  // its native "button" announcement finishes before Robin plays the focused
+  // cell, and cancel this timer if VoiceOver moves on to another cell.
+  focusPlaybackTimer = window.setTimeout(() => {
+    focusPlaybackTimer = null;
+    playDirectTouchCell(x, y);
+  }, VOICEOVER_CELL_TONE_DELAY_MS);
 }
 
-function playDirectTouchCell(x, y) {
+function playDirectTouchCell(x, y, audioDelayMs = 0) {
   const audio = ensureAudio();
   if (!audio) return;
   if (audio.state === "running") {
-    scheduleCellAudio(audio, x, y);
+    const output = scheduleCellAudio(audio, x, y, false, audioDelayMs);
+    trackDelayedCellOutput(output, audioDelayMs);
     return;
   }
 
@@ -366,7 +377,8 @@ function playDirectTouchCell(x, y) {
   if (directTouchAudioPending) return;
   directTouchAudioPending = true;
   const resumeRequest = resumeAudioContext(audio);
-  scheduleCellAudio(audio, x, y);
+  const output = scheduleCellAudio(audio, x, y, false, audioDelayMs);
+  trackDelayedCellOutput(output, audioDelayMs);
   resumeRequest.then((runningAudio) => {
     directTouchAudioPending = false;
     if (!runningAudio) {
@@ -472,6 +484,31 @@ function resetDirectTouchGesture() {
   directTouchMoved = false;
 }
 
+function cancelPendingFocusPlayback() {
+  if (focusPlaybackTimer !== null) {
+    window.clearTimeout(focusPlaybackTimer);
+    focusPlaybackTimer = null;
+  }
+  if (delayedCellOutput) {
+    delayedCellOutput.gain.value = 0;
+    delayedCellOutput.disconnect();
+    delayedCellOutput = null;
+  }
+  if (delayedCellOutputCleanupTimer !== null) {
+    window.clearTimeout(delayedCellOutputCleanupTimer);
+    delayedCellOutputCleanupTimer = null;
+  }
+}
+
+function trackDelayedCellOutput(output, audioDelayMs) {
+  if (!output || audioDelayMs <= 0) return;
+  delayedCellOutput = output;
+  delayedCellOutputCleanupTimer = window.setTimeout(() => {
+    if (delayedCellOutput === output) delayedCellOutput = null;
+    delayedCellOutputCleanupTimer = null;
+  }, audioDelayMs + 400);
+}
+
 function handleTouchCellClick(event, x, y) {
   const now = performance.now();
   if (event.detail > 0) {
@@ -493,10 +530,14 @@ function handleTouchCellClick(event, x, y) {
   // plotting silently. Once audio is running, VoiceOver double-tap plots.
   if (!audioUnlocked && audioContext?.state !== "running") {
     event.preventDefault();
-    focusTouchCell(x, y, { immediate: true, unlockAudio: true });
+    focusTouchCell(x, y, {
+      immediate: true,
+      unlockAudio: true,
+      audioDelayMs: VOICEOVER_CELL_TONE_DELAY_MS,
+    });
     return;
   }
-  activateTouchCell(x, y);
+  activateTouchCell(x, y, VOICEOVER_CELL_TONE_DELAY_MS);
 }
 
 function handleClickOnlyTouch(x, y, now) {
@@ -516,11 +557,12 @@ function handleClickOnlyTouch(x, y, now) {
   focusTouchCell(x, y, { immediate: true, unlockAudio: true });
 }
 
-function activateTouchCell(x, y) {
+function activateTouchCell(x, y, audioDelayMs = 0) {
+  cancelPendingFocusPlayback();
   cursorX = x;
   cursorY = y;
   updateRenderedCursor();
-  addShapeAtCursor(false);
+  addShapeAtCursor(false, audioDelayMs);
 }
 
 function updateRenderedCursor() {
@@ -566,12 +608,12 @@ function moveCursor(dx, dy, mode = "move", focus = true) {
   }
 }
 
-function addShapeAtCursor(focus = false) {
+function addShapeAtCursor(focus = false, audioDelayMs = 0) {
   const key = pointKey(cursorX, cursorY);
   const shapes = gridCells.get(key) || [];
   shapes.push(activeShape);
   gridCells.set(key, shapes);
-  playCell(cursorX, cursorY, true);
+  playCell(cursorX, cursorY, true, audioDelayMs);
   if (isTouchInterface()) {
     updateRenderedCell(cursorX, cursorY);
   } else {
@@ -1073,13 +1115,16 @@ function scheduleShape(output, shape, pitchRatio, start) {
   }
 }
 
-function playCell(x, y, drawing = false) {
-  withRunningAudio((audio) => scheduleCellAudio(audio, x, y, drawing));
+function playCell(x, y, drawing = false, audioDelayMs = 0) {
+  withRunningAudio((audio) => {
+    const output = scheduleCellAudio(audio, x, y, drawing, audioDelayMs);
+    trackDelayedCellOutput(output, audioDelayMs);
+  });
 }
 
-function scheduleCellAudio(audio, x, y, drawing = false) {
+function scheduleCellAudio(audio, x, y, drawing = false, audioDelayMs = 0) {
   const output = createPannedOutput(x, audio);
-  const start = audio.currentTime + 0.01;
+  const start = audio.currentTime + Math.max(0.01, audioDelayMs / 1000);
   // This row tone is always present. Empty cells play just this sound; plotted
   // cells layer their shape sounds over it, matching desktop cell_stereo().
   scheduleHarmonicTone(
@@ -1095,6 +1140,7 @@ function scheduleCellAudio(audio, x, y, drawing = false) {
     scheduleShape(output, shape, rowPitchRatio(y), start);
   }
   if (drawing) scheduleClick(output, start);
+  return output;
 }
 
 function playPlottedCell(x, y) {
