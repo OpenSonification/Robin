@@ -393,10 +393,14 @@ function beginDirectTouch(event, x, y) {
     audioContext?.state === "running" &&
     directTouchStartKey === lastTouchExplorationKey &&
     now - lastTouchExplorationAt < TOUCH_EVENT_DEDUPLICATION_MS;
+  const canPlayImmediately = audioContext?.state === "running";
   focusTouchCell(x, y, {
     immediate: true,
-    unlockAudio: true,
-    playAudio: !completingDoubleTap && !precedingExplorationPlayed,
+    unlockAudio: canPlayImmediately,
+    playAudio:
+      canPlayImmediately &&
+      !completingDoubleTap &&
+      !precedingExplorationPlayed,
   });
 }
 
@@ -416,9 +420,11 @@ function handleDirectTouchMove(event) {
   if (key === directTouchCurrentKey) return;
   directTouchCurrentKey = key;
   if (key !== directTouchStartKey) directTouchMoved = true;
+  const canPlayImmediately = audioContext?.state === "running";
   focusTouchCell(Number(cell.dataset.x), Number(cell.dataset.y), {
     immediate: true,
-    unlockAudio: true,
+    unlockAudio: canPlayImmediately,
+    playAudio: canPlayImmediately,
   });
 }
 
@@ -427,6 +433,17 @@ function handleDirectTouchEnd(event) {
   event.preventDefault();
   const completedKey = directTouchCurrentKey;
   const wasTap = !directTouchMoved && completedKey === directTouchStartKey;
+
+  // WebKit treats touchend (rather than touchstart or touchmove) as the
+  // explicit activation that is allowed to start media. On the first gesture,
+  // create/resume Web Audio and queue the cell tone synchronously here. Once
+  // the context is running, beginDirectTouch and handleDirectTouchMove can play
+  // immediately for later exploration gestures.
+  if (audioContext?.state !== "running" && completedKey) {
+    const [x, y] = completedKey.split(",").map(Number);
+    focusTouchCell(x, y, { immediate: true, unlockAudio: true });
+  }
+
   resetDirectTouchGesture();
   if (!wasTap) {
     lastDirectTapKey = null;

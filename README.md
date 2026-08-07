@@ -130,9 +130,9 @@ On iOS and other touch devices:
   giving users two visible and audible example points to explore. Website
   changes last for the current session only unless the user chooses **Save
   JSON**.
-- With VoiceOver off, the first touch starts Robin audio and plays that cell
-  without changing it. Keeping one finger down and dragging plays each crossed
-  cell; double-tapping a cell plots the selected shape.
+- With VoiceOver off, the first tap starts Robin audio and plays that cell when
+  the finger lifts, without changing it. Keeping one finger down and dragging
+  then plays each crossed cell; double-tapping a cell plots the selected shape.
 - With VoiceOver on, move focus by touching or swiping to a map cell to hear
   its position tone. If iOS has not started web audio yet, the first cell
   activation starts it; later focus changes play immediately. Use VoiceOver's
