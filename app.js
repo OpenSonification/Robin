@@ -6,6 +6,10 @@ const GRID_COUNT = 11;
 const ROOT_FREQUENCY = 130.81;
 const TOP_TRIM = 0.97;
 const PENTATONIC_STEPS = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+const CELL_TONE_DURATION = 0.22;
+const DESKTOP_CELL_TONE_VOLUME = 0.3;
+const TOUCH_CELL_TONE_VOLUME = 0.42;
+const TOUCH_EXPLORATION_DELAY_MS = 180;
 const VALID_SHAPES = ["square", "circle", "triangle", "diamond"];
 const SHAPE_SYMBOLS = {
   square: "□",
@@ -17,7 +21,12 @@ const STORAGE_KEY = "robin-grid-v2";
 const OLD_STORAGE_KEY = "robin-projects-v1";
 const OLD_CURRENT_KEY = "robin-current-project-v1";
 
-const demoPoints = [];
+// A new browser starts with two contrasting points so the map is immediately
+// visible and sonically explorable. Once saved, the user's own map takes over.
+const demoPoints = [
+  { x: -2, y: -2, shapes: ["square"] },
+  { x: 2, y: 2, shapes: ["circle"] },
+];
 
 const grid = document.querySelector("#sound-grid");
 const gridHelp = document.querySelector("#grid-help");
@@ -45,6 +54,8 @@ let cursorX = 0;
 let cursorY = 0;
 let activeShape = "circle";
 let audioContext = null;
+let audioResumePromise = null;
+let audioUnlocked = false;
 let playbackToken = 0;
 let blackout = false;
 let focusPlaybackTimer = null;
@@ -231,7 +242,15 @@ function renderGrid(options = {}) {
       renderCellShapes(cell, shapes);
 
       if (touchGrid) {
-        cell.addEventListener("focus", () => focusTouchCell(x, y));
+        const exploreCell = () => focusTouchCell(x, y);
+        cell.addEventListener("focus", exploreCell);
+        // VoiceOver navigation and direct touch do not produce exactly the
+        // same DOM events across WebKit versions. These redundant, read-only
+        // exploration handlers improve coverage without changing activation:
+        // only the click handler below plots a shape.
+        cell.addEventListener("pointerenter", exploreCell);
+        cell.addEventListener("mouseover", exploreCell);
+        cell.addEventListener("touchstart", exploreCell, { passive: true });
         cell.addEventListener("click", () => activateTouchCell(x, y));
       } else {
         cell.addEventListener("click", () => selectCell(x, y));
@@ -310,17 +329,20 @@ function selectCell(x, y) {
 }
 
 function focusTouchCell(x, y) {
+  if (focusPlaybackTimer !== null && cursorX === x && cursorY === y) return;
+
   cancelPlayback();
   cursorX = x;
   cursorY = y;
   updateRenderedCursor();
   cancelPendingFocusPlayback();
-  // A short delay prevents a sighted tap from playing twice: its subsequent
-  // click plots the shape and cancels this focus-only playback.
+  // The delay prevents a sighted tap from playing twice and lets VoiceOver's
+  // very short "Sound, button" announcement finish before Robin's tone. The
+  // subsequent click still cancels this read-only playback before plotting.
   focusPlaybackTimer = window.setTimeout(() => {
     focusPlaybackTimer = null;
     playCell(x, y);
-  }, 80);
+  }, TOUCH_EXPLORATION_DELAY_MS);
 }
 
 function activateTouchCell(x, y) {
@@ -544,6 +566,8 @@ function bindEvents() {
   } else {
     touchInterfaceQuery.addListener(handleTouchInterfaceChange);
   }
+  document.addEventListener("visibilitychange", recoverInterruptedAudio);
+  window.addEventListener("pageshow", recoverInterruptedAudio);
   window.addEventListener("keydown", handleKeyDown);
 }
 
@@ -623,27 +647,106 @@ function ensureAudio() {
     );
     return null;
   }
-  if (!audioContext) audioContext = new AudioContext();
-  if (audioContext.state === "suspended") {
-    audioContext.resume().then(markAudioStarted).catch(() => {});
-  } else if (audioContext.state === "running") {
-    markAudioStarted();
+  if (!audioContext || audioContext.state === "closed") {
+    audioContext = new AudioContext();
+    audioContext.addEventListener("statechange", updateAudioStartButton);
   }
   return audioContext;
+}
+
+function primeAudioContext(audio) {
+  // Starting a silent one-sample source inside the user's button/key gesture
+  // makes iOS WebKit's audio unlock more reliable without producing a sound.
+  const buffer = audio.createBuffer(1, 1, audio.sampleRate);
+  const source = audio.createBufferSource();
+  const gain = audio.createGain();
+  gain.gain.value = 0;
+  source.buffer = buffer;
+  source.connect(gain);
+  gain.connect(audio.destination);
+  source.start();
+}
+
+async function resumeAudioContext(audio = ensureAudio()) {
+  if (!audio) return null;
+  if (audio.state === "running") {
+    audioUnlocked = true;
+    updateAudioStartButton();
+    return audio;
+  }
+  if (audio.state === "closed") return null;
+  if (audioResumePromise) return audioResumePromise;
+
+  try {
+    primeAudioContext(audio);
+  } catch {
+    // The silent primer is an iOS compatibility aid; resume can still work
+    // without it in browsers that reject a source while interrupted.
+  }
+
+  let resumeRequest;
+  try {
+    resumeRequest = audio.resume();
+  } catch {
+    updateAudioStartButton();
+    return null;
+  }
+  audioResumePromise = resumeRequest
+    .then(() => {
+      if (audio.state !== "running") return null;
+      audioUnlocked = true;
+      updateAudioStartButton();
+      return audio;
+    })
+    .catch(() => null)
+    .finally(() => {
+      audioResumePromise = null;
+    });
+  return audioResumePromise;
+}
+
+function withRunningAudio(schedule) {
+  const audio = ensureAudio();
+  if (!audio) return;
+  if (audio.state === "running") {
+    schedule(audio);
+    return;
+  }
+
+  // On touch browsers, Start Robin audio must be activated once by the user.
+  // Do not leave unresolved resume requests behind while VoiceOver explores.
+  if (isTouchInterface() && !audioUnlocked) return;
+  resumeAudioContext(audio).then((runningAudio) => {
+    if (runningAudio) schedule(runningAudio);
+  });
+}
+
+function recoverInterruptedAudio() {
+  if (
+    document.visibilityState === "hidden" ||
+    !audioUnlocked ||
+    !audioContext
+  ) {
+    return;
+  }
+  if (audioContext.state !== "running") {
+    resumeAudioContext(audioContext);
+  } else {
+    updateAudioStartButton();
+  }
 }
 
 async function startAudio() {
   const audio = ensureAudio();
   if (!audio) return;
-  try {
-    if (audio.state === "suspended") await audio.resume();
-    markAudioStarted();
-    playCell(cursorX, cursorY);
+  const runningAudio = await resumeAudioContext(audio);
+  if (runningAudio) {
+    scheduleCellAudio(runningAudio, cursorX, cursorY);
     setStatus(
       "Robin audio is on.",
-      "Touch or swipe to a map cell with VoiceOver to hear it.",
+      "Every cell, including an empty one, now plays when VoiceOver reaches it.",
     );
-  } catch {
+  } else {
     setStatus(
       "Robin could not start audio.",
       "Try activating Start Robin audio again.",
@@ -651,18 +754,24 @@ async function startAudio() {
   }
 }
 
-function markAudioStarted() {
-  if (!audioStartButton || audioContext?.state !== "running") return;
-  audioStartButton.textContent = "Replay focused cell";
-  audioStartButton.setAttribute(
-    "aria-label",
-    "Robin audio is on. Replay focused cell",
-  );
+function updateAudioStartButton() {
+  if (!audioStartButton) return;
+  if (audioContext?.state === "running") {
+    audioStartButton.textContent = "Replay focused cell";
+    audioStartButton.setAttribute(
+      "aria-label",
+      "Robin audio is on. Replay focused cell",
+    );
+  } else if (audioUnlocked) {
+    audioStartButton.textContent = "Resume Robin audio";
+    audioStartButton.setAttribute("aria-label", "Resume Robin audio");
+  } else {
+    audioStartButton.textContent = "Start Robin audio";
+    audioStartButton.setAttribute("aria-label", "Start Robin audio");
+  }
 }
 
-function createPannedOutput(x) {
-  const audio = ensureAudio();
-  if (!audio) return null;
+function createPannedOutput(x, audio) {
   const output = audio.createGain();
   output.gain.value = 0.72;
 
@@ -678,8 +787,8 @@ function createPannedOutput(x) {
 }
 
 function scheduleTone(output, frequency, start, duration, volume, options = {}) {
-  const audio = ensureAudio();
-  if (!audio || !output) return;
+  if (!output) return;
+  const audio = output.context;
   const {
     attack = 0.015,
     release = Math.min(duration * 0.45, 0.12),
@@ -709,8 +818,8 @@ function scheduleHarmonicTone(output, frequency, start, duration, volume) {
 }
 
 function scheduleClick(output, start) {
-  const audio = ensureAudio();
-  if (!audio || !output) return;
+  if (!output) return;
+  const audio = output.context;
   const length = Math.floor(audio.sampleRate * 0.018);
   const buffer = audio.createBuffer(1, length, audio.sampleRate);
   const channel = buffer.getChannelData(0);
@@ -727,44 +836,44 @@ function scheduleClick(output, start) {
 }
 
 function playBin(x) {
-  const audio = ensureAudio();
-  if (!audio) return;
-  const output = createPannedOutput(x);
-  const start = audio.currentTime + 0.01;
-  scheduleTone(output, 90, start, 0.09, 0.28, {
-    attack: 0.003,
-    release: 0.055,
-  });
+  withRunningAudio((audio) => {
+    const output = createPannedOutput(x, audio);
+    const start = audio.currentTime + 0.01;
+    scheduleTone(output, 90, start, 0.09, 0.28, {
+      attack: 0.003,
+      release: 0.055,
+    });
 
-  const length = Math.floor(audio.sampleRate * 0.05);
-  const buffer = audio.createBuffer(1, length, audio.sampleRate);
-  const channel = buffer.getChannelData(0);
-  for (let index = 0; index < length; index += 1) {
-    channel[index] = (Math.random() * 2 - 1) * (1 - index / length);
-  }
-  const source = audio.createBufferSource();
-  const gain = audio.createGain();
-  source.buffer = buffer;
-  gain.gain.value = 0.12;
-  source.connect(gain);
-  gain.connect(output);
-  source.start(start + 0.1);
+    const length = Math.floor(audio.sampleRate * 0.05);
+    const buffer = audio.createBuffer(1, length, audio.sampleRate);
+    const channel = buffer.getChannelData(0);
+    for (let index = 0; index < length; index += 1) {
+      channel[index] = (Math.random() * 2 - 1) * (1 - index / length);
+    }
+    const source = audio.createBufferSource();
+    const gain = audio.createGain();
+    source.buffer = buffer;
+    gain.gain.value = 0.12;
+    source.connect(gain);
+    gain.connect(output);
+    source.start(start + 0.1);
+  });
 }
 
 function playToggleSound(turningOff) {
-  const audio = ensureAudio();
-  if (!audio) return;
-  const output = createPannedOutput(0);
-  const start = audio.currentTime + 0.01;
-  const first = turningOff ? 500 : 260;
-  const second = turningOff ? 260 : 500;
-  scheduleTone(output, first, start, 0.07, 0.24, {
-    attack: 0.003,
-    release: 0.04,
-  });
-  scheduleTone(output, second, start + 0.08, 0.09, 0.24, {
-    attack: 0.003,
-    release: 0.055,
+  withRunningAudio((audio) => {
+    const output = createPannedOutput(0, audio);
+    const start = audio.currentTime + 0.01;
+    const first = turningOff ? 500 : 260;
+    const second = turningOff ? 260 : 500;
+    scheduleTone(output, first, start, 0.07, 0.24, {
+      attack: 0.003,
+      release: 0.04,
+    });
+    scheduleTone(output, second, start + 0.08, 0.09, 0.24, {
+      attack: 0.003,
+      release: 0.055,
+    });
   });
 }
 
@@ -827,11 +936,23 @@ function scheduleShape(output, shape, pitchRatio, start) {
 }
 
 function playCell(x, y, drawing = false) {
-  const audio = ensureAudio();
-  if (!audio) return;
-  const output = createPannedOutput(x);
+  withRunningAudio((audio) => scheduleCellAudio(audio, x, y, drawing));
+}
+
+function scheduleCellAudio(audio, x, y, drawing = false) {
+  const output = createPannedOutput(x, audio);
   const start = audio.currentTime + 0.01;
-  scheduleHarmonicTone(output, rowFrequency(y), start, 0.22, 0.3);
+  // This row tone is always present. Empty cells play just this sound; plotted
+  // cells layer their shape sounds over it, matching desktop cell_stereo().
+  scheduleHarmonicTone(
+    output,
+    rowFrequency(y),
+    start,
+    CELL_TONE_DURATION,
+    isTouchInterface()
+      ? TOUCH_CELL_TONE_VOLUME
+      : DESKTOP_CELL_TONE_VOLUME,
+  );
   for (const shape of uniqueShapes(gridCells.get(pointKey(x, y)) || [])) {
     scheduleShape(output, shape, rowPitchRatio(y), start);
   }
@@ -841,13 +962,13 @@ function playCell(x, y, drawing = false) {
 function playPlottedCell(x, y) {
   const shapes = gridCells.get(pointKey(x, y));
   if (!shapes?.length) return;
-  const audio = ensureAudio();
-  if (!audio) return;
-  const output = createPannedOutput(x);
-  const start = audio.currentTime + 0.01;
-  for (const shape of uniqueShapes(shapes)) {
-    scheduleShape(output, shape, rowPitchRatio(y), start);
-  }
+  withRunningAudio((audio) => {
+    const output = createPannedOutput(x, audio);
+    const start = audio.currentTime + 0.01;
+    for (const shape of uniqueShapes(shapes)) {
+      scheduleShape(output, shape, rowPitchRatio(y), start);
+    }
+  });
 }
 
 function cancelPlayback() {
@@ -861,6 +982,14 @@ function delay(milliseconds) {
 async function runPlayback(kind) {
   cancelPlayback();
   const token = playbackToken;
+  const runningAudio = await resumeAudioContext();
+  if (!runningAudio) {
+    setStatus(
+      "Robin audio is off.",
+      "Activate Start Robin audio, then try this action again.",
+    );
+    return;
+  }
   const messages = {
     row: "Playing the current row from left to right.",
     column: "Playing the current column from bottom to top.",
