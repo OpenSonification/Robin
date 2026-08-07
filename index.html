@@ -36,7 +36,7 @@
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
-    <script src="app.js?v=20260807-selected-voiceover-action" defer></script>
+    <script src="app.js?v=20260807-voiceover-rotor-actions" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>
@@ -87,6 +87,8 @@
                   All actions remain visible. Move VoiceOver focus to an
                   action to select it, then double-tap to run it. The selected
                   button turns blue. Circle is the default active shape.
+                  On supported Safari versions, the same commands are also in
+                  the Actions rotor while a grid cell is focused.
                 </p>
                 <p class="voiceover-selected-action">
                   <strong>Selected action:</strong>
@@ -105,34 +107,48 @@
                   <button data-touch-plot data-voiceover-action type="button">
                     Plot circle
                   </button>
-                  <button data-touch-erase data-voiceover-action type="button">
+                  <button
+                    id="voiceover-action-delete"
+                    data-touch-erase
+                    data-voiceover-action
+                    type="button"
+                    aria-label="Delete"
+                  >
                     Delete focused point
                   </button>
                   <button
+                    id="voiceover-action-play-row"
                     data-touch-playback="row"
                     data-voiceover-action
                     type="button"
+                    aria-label="Play row"
                   >
                     Play focused row
                   </button>
                   <button
+                    id="voiceover-action-play-column"
                     data-touch-playback="column"
                     data-voiceover-action
                     type="button"
+                    aria-label="Play column"
                   >
                     Play focused column
                   </button>
                   <button
+                    id="voiceover-action-sweep-columns"
                     data-touch-playback="columns"
                     data-voiceover-action
                     type="button"
+                    aria-label="Sweep left to right"
                   >
                     Sweep left to right
                   </button>
                   <button
+                    id="voiceover-action-sweep-rows"
                     data-touch-playback="rows"
                     data-voiceover-action
                     type="button"
+                    aria-label="Sweep bottom to top"
                   >
                     Sweep bottom to top
                   </button>
@@ -194,6 +210,13 @@
             grid once. Touch or swipe to focus cells and hear each one without
             double-tapping. Double-tap only when you want to plot. Use
             VoiceOver's standard three-finger swipe to scroll the page.
+          </li>
+          <li>
+            On Safari versions that support web rotor actions, keep focus on a
+            grid cell and rotate two fingers until VoiceOver says Actions.
+            Swipe up or down to choose Delete, Play row, Play column, or a
+            sweep, then double-tap. The visible buttons remain available on
+            every browser.
           </li>
         </ol>
 
