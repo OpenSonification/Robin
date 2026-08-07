@@ -11,6 +11,7 @@ const DESKTOP_CELL_TONE_VOLUME = 0.3;
 const TOUCH_CELL_TONE_VOLUME = 0.42;
 const TOUCH_EVENT_DEDUPLICATION_MS = 500;
 const DIRECT_DOUBLE_TAP_MS = 450;
+const PHYSICAL_POINTER_CLICK_MS = 900;
 const VOICEOVER_CELL_TONE_DELAY_MS = 1100;
 const VALID_SHAPES = ["square", "circle", "triangle", "diamond"];
 const SHAPE_SYMBOLS = {
@@ -66,6 +67,8 @@ let directTouchMoved = false;
 let lastDirectTapKey = null;
 let lastDirectTapAt = 0;
 let ignorePhysicalClickUntil = 0;
+let lastPhysicalPointerKey = null;
+let lastPhysicalPointerAt = 0;
 let directTouchAudioPending = false;
 
 setInterfaceMode(shouldUseTouchInterface());
@@ -227,6 +230,9 @@ function renderGrid(options = {}) {
       if (touchGrid) {
         const exploreCell = () => focusTouchCell(x, y);
         cell.addEventListener("focus", exploreCell);
+        cell.addEventListener("pointerdown", (event) => {
+          recordPhysicalPointer(event, x, y);
+        });
         cell.addEventListener(
           "touchstart",
           (event) => beginDirectTouch(event, x, y),
@@ -361,11 +367,11 @@ function focusTouchCell(x, y, options = {}) {
   }, VOICEOVER_CELL_TONE_DELAY_MS);
 }
 
-function playDirectTouchCell(x, y, audioDelayMs = 0) {
+function playDirectTouchCell(x, y, audioDelayMs = 0, drawing = false) {
   const audio = ensureAudio();
   if (!audio) return;
   if (audio.state === "running") {
-    const output = scheduleCellAudio(audio, x, y, false, audioDelayMs);
+    const output = scheduleCellAudio(audio, x, y, drawing, audioDelayMs);
     trackDelayedCellOutput(output, audioDelayMs);
     return;
   }
@@ -377,7 +383,7 @@ function playDirectTouchCell(x, y, audioDelayMs = 0) {
   if (directTouchAudioPending) return;
   directTouchAudioPending = true;
   const resumeRequest = resumeAudioContext(audio);
-  const output = scheduleCellAudio(audio, x, y, false, audioDelayMs);
+  const output = scheduleCellAudio(audio, x, y, drawing, audioDelayMs);
   trackDelayedCellOutput(output, audioDelayMs);
   resumeRequest.then((runningAudio) => {
     directTouchAudioPending = false;
@@ -509,35 +515,53 @@ function trackDelayedCellOutput(output, audioDelayMs) {
   }, audioDelayMs + 400);
 }
 
+function recordPhysicalPointer(event, x, y) {
+  if (!event.isPrimary) return;
+  lastPhysicalPointerKey = pointKey(x, y);
+  lastPhysicalPointerAt = performance.now();
+}
+
+function isPhysicalPointerClick(event, x, y, now) {
+  const key = pointKey(x, y);
+  const recentPointer =
+    key === lastPhysicalPointerKey &&
+    now - lastPhysicalPointerAt <= PHYSICAL_POINTER_CLICK_MS;
+  const touchGeneratedClick =
+    event.sourceCapabilities?.firesTouchEvents === true;
+  if (recentPointer) {
+    lastPhysicalPointerKey = null;
+    lastPhysicalPointerAt = 0;
+  }
+  return recentPointer || touchGeneratedClick;
+}
+
 function handleTouchCellClick(event, x, y) {
   const now = performance.now();
-  if (event.detail > 0) {
-    // Most browsers handle a physical tap through touchstart/touchend. Some
-    // iOS browser configurations deliver only the final trusted click. Ignore
-    // the click when touch already handled it; otherwise use it as the full
-    // first-tap/double-tap fallback, including the audio unlock.
-    if (now < ignorePhysicalClickUntil) {
-      event.preventDefault();
-      return;
-    }
+  // Most physical taps are handled by touchstart/touchend. Suppress their
+  // follow-up click so the same gesture does not plot twice.
+  if (now < ignorePhysicalClickUntil) {
+    event.preventDefault();
+    return;
+  }
+
+  // A physical pointer that did not produce touch events still needs Robin's
+  // sighted first-tap/double-tap fallback. VoiceOver and other non-pointer
+  // activation mechanisms intentionally do not fire pointer events, so their
+  // synthesized click proceeds directly to the button's plotting action.
+  if (isPhysicalPointerClick(event, x, y, now)) {
     event.preventDefault();
     handleClickOnlyTouch(x, y, now);
     return;
   }
 
-  // VoiceOver activation is a synthesized click. If audio has not yet been
-  // allowed by iOS, the first activation starts and plays Robin instead of
-  // plotting silently. Once audio is running, VoiceOver double-tap plots.
-  if (!audioUnlocked && audioContext?.state !== "running") {
-    event.preventDefault();
-    focusTouchCell(x, y, {
-      immediate: true,
-      unlockAudio: true,
-      audioDelayMs: VOICEOVER_CELL_TONE_DELAY_MS,
-    });
-    return;
-  }
-  activateTouchCell(x, y, VOICEOVER_CELL_TONE_DELAY_MS);
+  event.preventDefault();
+  const unlockAudio = !audioUnlocked && audioContext?.state !== "running";
+  activateTouchCell(
+    x,
+    y,
+    VOICEOVER_CELL_TONE_DELAY_MS,
+    unlockAudio,
+  );
 }
 
 function handleClickOnlyTouch(x, y, now) {
@@ -557,12 +581,17 @@ function handleClickOnlyTouch(x, y, now) {
   focusTouchCell(x, y, { immediate: true, unlockAudio: true });
 }
 
-function activateTouchCell(x, y, audioDelayMs = 0) {
+function activateTouchCell(
+  x,
+  y,
+  audioDelayMs = 0,
+  unlockAudio = false,
+) {
   cancelPendingFocusPlayback();
   cursorX = x;
   cursorY = y;
   updateRenderedCursor();
-  addShapeAtCursor(false, audioDelayMs);
+  addShapeAtCursor(false, audioDelayMs, unlockAudio);
 }
 
 function updateRenderedCursor() {
@@ -608,12 +637,20 @@ function moveCursor(dx, dy, mode = "move", focus = true) {
   }
 }
 
-function addShapeAtCursor(focus = false, audioDelayMs = 0) {
+function addShapeAtCursor(
+  focus = false,
+  audioDelayMs = 0,
+  unlockAudio = false,
+) {
   const key = pointKey(cursorX, cursorY);
   const shapes = gridCells.get(key) || [];
   shapes.push(activeShape);
   gridCells.set(key, shapes);
-  playCell(cursorX, cursorY, true, audioDelayMs);
+  if (unlockAudio) {
+    playDirectTouchCell(cursorX, cursorY, audioDelayMs, true);
+  } else {
+    playCell(cursorX, cursorY, true, audioDelayMs);
+  }
   if (isTouchInterface()) {
     updateRenderedCell(cursorX, cursorY);
   } else {
