@@ -345,6 +345,13 @@ function focusTouchCell(x, y, options = {}) {
     return;
   }
 
+  // iOS can send hover/focus-style events immediately before the real
+  // touchstart. Those events do not carry the tap's audio permission, so an
+  // attempted resume here can remain pending and prevent touchstart from
+  // performing the valid unlock. VoiceOver users start audio once with the
+  // dedicated button; sighted first-touch unlock is handled by touchstart.
+  if (!audioUnlocked && audioContext?.state !== "running") return;
+
   // Use the same immediate cell-audio path as a direct touch. This schedules
   // the tone at the instant VoiceOver moves focus, and also retries a paused
   // iOS AudioContext instead of silently dropping the focus sound.
@@ -388,10 +395,14 @@ function beginDirectTouch(event, x, y) {
   const completingDoubleTap =
     directTouchStartKey === lastDirectTapKey &&
     now - lastDirectTapAt <= DIRECT_DOUBLE_TAP_MS;
+  const precedingExplorationPlayed =
+    audioContext?.state === "running" &&
+    directTouchStartKey === lastTouchExplorationKey &&
+    now - lastTouchExplorationAt < TOUCH_EVENT_DEDUPLICATION_MS;
   focusTouchCell(x, y, {
     immediate: true,
     unlockAudio: true,
-    playAudio: !completingDoubleTap,
+    playAudio: !completingDoubleTap && !precedingExplorationPlayed,
   });
 }
 
@@ -765,8 +776,15 @@ function ensureAudio() {
     return null;
   }
   if (!audioContext || audioContext.state === "closed") {
-    audioContext = new AudioContext();
-    audioContext.addEventListener("statechange", updateAudioStartButton);
+    const createdAudio = new AudioContext();
+    audioContext = createdAudio;
+    createdAudio.addEventListener("statechange", () => {
+      // Some WebKit versions report the running state just after resume()'s
+      // promise settles. The state event is the authoritative point at which
+      // later VoiceOver focus events may safely reuse the unlocked context.
+      if (createdAudio.state === "running") audioUnlocked = true;
+      updateAudioStartButton();
+    });
   }
   return audioContext;
 }
