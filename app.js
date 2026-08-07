@@ -398,7 +398,6 @@ function playDirectTouchCell(x, y, audioDelayMs = 0, drawing = false) {
 
 function beginDirectTouch(event, x, y) {
   if (event.touches.length !== 1) return;
-  event.preventDefault();
   const now = performance.now();
   directTouchStartKey = pointKey(x, y);
   directTouchCurrentKey = directTouchStartKey;
@@ -448,7 +447,6 @@ function handleDirectTouchMove(event) {
 
 function handleDirectTouchEnd(event) {
   if (directTouchStartKey === null) return;
-  event.preventDefault();
   const completedKey = directTouchCurrentKey;
   const wasTap = !directTouchMoved && completedKey === directTouchStartKey;
 
@@ -537,9 +535,12 @@ function isPhysicalPointerClick(event, x, y, now) {
 
 function handleTouchCellClick(event, x, y) {
   const now = performance.now();
+  const accessibleActivation = event.detail === 0;
   // Most physical taps are handled by touchstart/touchend. Suppress their
-  // follow-up click so the same gesture does not plot twice.
-  if (now < ignorePhysicalClickUntil) {
+  // follow-up click so the same gesture does not plot twice. A zero-detail
+  // click is the browser's device-independent activation for VoiceOver or a
+  // keyboard, and must not be swallowed even if iOS also emitted touch events.
+  if (!accessibleActivation && now < ignorePhysicalClickUntil) {
     event.preventDefault();
     return;
   }
@@ -548,7 +549,7 @@ function handleTouchCellClick(event, x, y) {
   // sighted first-tap/double-tap fallback. VoiceOver and other non-pointer
   // activation mechanisms intentionally do not fire pointer events, so their
   // synthesized click proceeds directly to the button's plotting action.
-  if (isPhysicalPointerClick(event, x, y, now)) {
+  if (!accessibleActivation && isPhysicalPointerClick(event, x, y, now)) {
     event.preventDefault();
     handleClickOnlyTouch(x, y, now);
     return;
@@ -556,9 +557,12 @@ function handleTouchCellClick(event, x, y) {
 
   event.preventDefault();
   const unlockAudio = !audioUnlocked && audioContext?.state !== "running";
+  // Accessibility activation belongs to the cell carrying VoiceOver focus.
+  // Use Robin's focus-tracked coordinates rather than the physical location
+  // where the user happened to perform VoiceOver's double-tap gesture.
   activateTouchCell(
-    x,
-    y,
+    cursorX,
+    cursorY,
     VOICEOVER_CELL_TONE_DELAY_MS,
     unlockAudio,
   );
