@@ -18,6 +18,8 @@ const SHAPE_SYMBOLS = {
   diamond: "◇",
 };
 const STORAGE_KEY = "robin-grid-v2";
+const STARTER_VERSION_KEY = "robin-starter-version";
+const STARTER_VERSION = "1";
 const OLD_STORAGE_KEY = "robin-projects-v1";
 const OLD_CURRENT_KEY = "robin-current-project-v1";
 
@@ -132,8 +134,25 @@ function loadInitialGrid() {
     }
   }
 
-  setPoints(points || demoPoints);
+  let starterSeen = false;
+  try {
+    starterSeen = localStorage.getItem(STARTER_VERSION_KEY) === STARTER_VERSION;
+  } catch {
+    starterSeen = false;
+  }
+
+  // Existing browsers may already have saved an empty map before starter
+  // points were introduced. Seed those once, while never replacing a map that
+  // contains the user's work. After this first load, Clear map remains empty.
+  if (!points || (!points.length && !starterSeen)) points = demoPoints;
+
+  setPoints(points);
   saveGrid();
+  try {
+    localStorage.setItem(STARTER_VERSION_KEY, STARTER_VERSION);
+  } catch {
+    // saveGrid already reports unavailable browser storage.
+  }
 }
 
 function setPoints(points) {
