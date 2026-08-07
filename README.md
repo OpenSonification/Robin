@@ -52,12 +52,14 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
   selected.
 - Only the current cell is in the normal tab order, so all 121 cells do not
   create a long tab sequence.
-- A screen reader announces each cell's x and y coordinates followed by any
-  plotted shapes. Empty cells announce only their coordinates.
+- On desktop, a screen reader announces each cell's x and y coordinates
+  followed by any plotted shapes. Empty cells announce only their coordinates.
 - On iOS, every map cell is exposed as a native button so VoiceOver users can
   find cells by touching the map or swiping through it. Moving VoiceOver focus
   to a cell plays its position and plotted-shape sounds; double-tapping plots
-  the selected shape.
+  the selected shape. Every touch cell has the same minimal **Sound** label, so
+  VoiceOver does not speak coordinates or shape descriptions over Robin's
+  audio.
 - The map overview is available from the **Explain the map** disclosure on
   touch devices instead of being repeated whenever a cell is selected.
 - Deleting and the four map sweeps are provided as labelled focused-cell

@@ -267,6 +267,11 @@ function renderCellShapes(cell, shapes) {
 }
 
 function cellLabel(x, y, shapes) {
+  // Touch cells deliberately share one short name. VoiceOver still needs a
+  // named native control to discover during touch exploration, while Robin's
+  // own audio communicates the cell position and any plotted shapes.
+  if (isTouchInterface()) return "Sound";
+
   const contents = describeShapes(shapes);
   return contents ? `x ${x}, y ${y}, ${contents}` : `x ${x}, y ${y}`;
 }
