@@ -32,7 +32,6 @@ const statusTitles = [...document.querySelectorAll("[data-status-title]")];
 const statusDetails = [...document.querySelectorAll("[data-status-detail]")];
 const cursorXOutput = document.querySelector("#cursor-x");
 const cursorYOutput = document.querySelector("#cursor-y");
-const audioStartButton = document.querySelector("#audio-start");
 const touchShapeSelect = document.querySelector("#touch-shape");
 const touchPlotButton = document.querySelector("#touch-plot");
 const blackoutToggleButtons = [
@@ -223,12 +222,6 @@ function renderGrid(options = {}) {
       if (touchGrid) {
         const exploreCell = () => focusTouchCell(x, y);
         cell.addEventListener("focus", exploreCell);
-        // VoiceOver navigation and direct touch do not produce exactly the
-        // same DOM events across WebKit versions. These redundant, read-only
-        // exploration handlers improve coverage without changing activation.
-        // Direct double-tap and synthesized activation are handled separately.
-        cell.addEventListener("pointerenter", exploreCell);
-        cell.addEventListener("mouseover", exploreCell);
         cell.addEventListener(
           "touchstart",
           (event) => beginDirectTouch(event, x, y),
@@ -348,8 +341,8 @@ function focusTouchCell(x, y, options = {}) {
   // iOS can send hover/focus-style events immediately before the real
   // touchstart. Those events do not carry the tap's audio permission, so an
   // attempted resume here can remain pending and prevent touchstart from
-  // performing the valid unlock. VoiceOver users start audio once with the
-  // dedicated button; sighted first-touch unlock is handled by touchstart.
+  // performing the valid unlock. Initial audio startup is handled only by an
+  // activating touch/click; later VoiceOver focus can reuse that context.
   if (!audioUnlocked && audioContext?.state !== "running") return;
 
   // Use the same immediate cell-audio path as a direct touch. This schedules
@@ -368,7 +361,8 @@ function playDirectTouchCell(x, y) {
 
   // iOS WebKit may resolve AudioContext.resume() after the original touch has
   // lost its user-activation allowance. Queue the audible nodes synchronously
-  // inside touchstart, then resume the context; they play when it starts.
+  // inside the activating touch/click, then resume the context; they play when
+  // it starts.
   if (directTouchAudioPending) return;
   directTouchAudioPending = true;
   const resumeRequest = resumeAudioContext(audio);
@@ -378,7 +372,7 @@ function playDirectTouchCell(x, y) {
     if (!runningAudio) {
       setStatus(
         "Robin audio needs another touch.",
-        "Touch a cell again or activate Start Robin audio.",
+        "Touch the cell again to start its sound.",
       );
     }
   });
@@ -462,13 +456,47 @@ function resetDirectTouchGesture() {
 }
 
 function handleTouchCellClick(event, x, y) {
-  // A physical iOS tap is handled by the touch sequence above. VoiceOver and
-  // keyboard activation instead synthesize a click, which must still plot.
-  if (event.detail > 0 && performance.now() < ignorePhysicalClickUntil) {
+  const now = performance.now();
+  if (event.detail > 0) {
+    // Most browsers handle a physical tap through touchstart/touchend. Some
+    // iOS browser configurations deliver only the final trusted click. Ignore
+    // the click when touch already handled it; otherwise use it as the full
+    // first-tap/double-tap fallback, including the audio unlock.
+    if (now < ignorePhysicalClickUntil) {
+      event.preventDefault();
+      return;
+    }
     event.preventDefault();
+    handleClickOnlyTouch(x, y, now);
+    return;
+  }
+
+  // VoiceOver activation is a synthesized click. If audio has not yet been
+  // allowed by iOS, the first activation starts and plays Robin instead of
+  // plotting silently. Once audio is running, VoiceOver double-tap plots.
+  if (!audioUnlocked && audioContext?.state !== "running") {
+    event.preventDefault();
+    focusTouchCell(x, y, { immediate: true, unlockAudio: true });
     return;
   }
   activateTouchCell(x, y);
+}
+
+function handleClickOnlyTouch(x, y, now) {
+  const key = pointKey(x, y);
+  if (
+    key === lastDirectTapKey &&
+    now - lastDirectTapAt <= DIRECT_DOUBLE_TAP_MS
+  ) {
+    lastDirectTapKey = null;
+    lastDirectTapAt = 0;
+    activateTouchCell(x, y);
+    return;
+  }
+
+  lastDirectTapKey = key;
+  lastDirectTapAt = now;
+  focusTouchCell(x, y, { immediate: true, unlockAudio: true });
 }
 
 function activateTouchCell(x, y) {
@@ -652,7 +680,6 @@ function bindEvents() {
   document.querySelectorAll("[data-export-project]").forEach((button) => {
     button.addEventListener("click", exportProject);
   });
-  audioStartButton.addEventListener("click", startAudio);
   importInputs.forEach((input) => {
     input.addEventListener("change", importProject);
   });
@@ -783,7 +810,6 @@ function ensureAudio() {
       // promise settles. The state event is the authoritative point at which
       // later VoiceOver focus events may safely reuse the unlocked context.
       if (createdAudio.state === "running") audioUnlocked = true;
-      updateAudioStartButton();
     });
   }
   return audioContext;
@@ -806,7 +832,6 @@ async function resumeAudioContext(audio = ensureAudio()) {
   if (!audio) return null;
   if (audio.state === "running") {
     audioUnlocked = true;
-    updateAudioStartButton();
     return audio;
   }
   if (audio.state === "closed") return null;
@@ -823,14 +848,12 @@ async function resumeAudioContext(audio = ensureAudio()) {
   try {
     resumeRequest = audio.resume();
   } catch {
-    updateAudioStartButton();
     return null;
   }
   audioResumePromise = resumeRequest
     .then(() => {
       if (audio.state !== "running") return null;
       audioUnlocked = true;
-      updateAudioStartButton();
       return audio;
     })
     .catch(() => null)
@@ -848,8 +871,8 @@ function withRunningAudio(schedule) {
     return;
   }
 
-  // On touch browsers, Start Robin audio must be activated once by the user.
-  // Do not leave unresolved resume requests behind while VoiceOver explores.
+  // On touch browsers, a cell activation must unlock audio once. Do not leave
+  // unresolved resume requests behind while VoiceOver only explores.
   if (isTouchInterface() && !audioUnlocked) return;
   resumeAudioContext(audio).then((runningAudio) => {
     if (runningAudio) schedule(runningAudio);
@@ -866,43 +889,6 @@ function recoverInterruptedAudio() {
   }
   if (audioContext.state !== "running") {
     resumeAudioContext(audioContext);
-  } else {
-    updateAudioStartButton();
-  }
-}
-
-async function startAudio() {
-  const audio = ensureAudio();
-  if (!audio) return;
-  const runningAudio = await resumeAudioContext(audio);
-  if (runningAudio) {
-    scheduleCellAudio(runningAudio, cursorX, cursorY);
-    setStatus(
-      "Robin audio is on.",
-      "Every cell, including an empty one, now plays when VoiceOver reaches it.",
-    );
-  } else {
-    setStatus(
-      "Robin could not start audio.",
-      "Try activating Start Robin audio again.",
-    );
-  }
-}
-
-function updateAudioStartButton() {
-  if (!audioStartButton) return;
-  if (audioContext?.state === "running") {
-    audioStartButton.textContent = "Replay focused cell";
-    audioStartButton.setAttribute(
-      "aria-label",
-      "Robin audio is on. Replay focused cell",
-    );
-  } else if (audioUnlocked) {
-    audioStartButton.textContent = "Resume Robin audio";
-    audioStartButton.setAttribute("aria-label", "Resume Robin audio");
-  } else {
-    audioStartButton.textContent = "Start Robin audio";
-    audioStartButton.setAttribute("aria-label", "Start Robin audio");
   }
 }
 
@@ -1121,7 +1107,7 @@ async function runPlayback(kind) {
   if (!runningAudio) {
     setStatus(
       "Robin audio is off.",
-      "Activate Start Robin audio, then try this action again.",
+      "Touch a cell, then try this action again.",
     );
     return;
   }
