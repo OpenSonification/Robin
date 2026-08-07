@@ -9,7 +9,6 @@ const PENTATONIC_STEPS = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
 const CELL_TONE_DURATION = 0.22;
 const DESKTOP_CELL_TONE_VOLUME = 0.3;
 const TOUCH_CELL_TONE_VOLUME = 0.42;
-const TOUCH_EXPLORATION_DELAY_MS = 180;
 const TOUCH_EVENT_DEDUPLICATION_MS = 500;
 const DIRECT_DOUBLE_TAP_MS = 450;
 const VALID_SHAPES = ["square", "circle", "triangle", "diamond"];
@@ -56,7 +55,6 @@ let audioResumePromise = null;
 let audioUnlocked = false;
 let playbackToken = 0;
 let blackout = false;
-let focusPlaybackTimer = null;
 let lastTouchExplorationKey = null;
 let lastTouchExplorationAt = 0;
 let directTouchStartKey = null;
@@ -65,7 +63,7 @@ let directTouchMoved = false;
 let lastDirectTapKey = null;
 let lastDirectTapAt = 0;
 let ignorePhysicalClickUntil = 0;
-let directTouchAudioToken = 0;
+let directTouchAudioPending = false;
 
 setInterfaceMode(shouldUseTouchInterface());
 loadInitialGrid();
@@ -119,7 +117,6 @@ function loadInitialGrid() {
 }
 
 function restoreStarterMap() {
-  cancelPendingFocusPlayback();
   resetDirectTouchGesture();
   cancelPlayback();
   cursorX = 0;
@@ -274,10 +271,10 @@ function renderCellShapes(cell, shapes) {
 }
 
 function cellLabel(x, y, shapes) {
-  // Touch cells deliberately share one short name. VoiceOver still needs a
-  // named native control to discover during touch exploration, while Robin's
-  // own audio communicates the cell position and any plotted shapes.
-  if (isTouchInterface()) return "Sound";
+  // Keep native buttons so VoiceOver can reliably discover and activate each
+  // touch cell, but leave their name empty: Robin's audio communicates the
+  // cell position and contents without spoken coordinates or "Sound".
+  if (isTouchInterface()) return "";
 
   const contents = describeShapes(shapes);
   return contents ? `x ${x}, y ${y}, ${contents}` : `x ${x}, y ${y}`;
@@ -338,7 +335,6 @@ function focusTouchCell(x, y, options = {}) {
   cursorX = x;
   cursorY = y;
   updateRenderedCursor();
-  cancelPendingFocusPlayback();
   if (immediate) {
     if (!playAudio) return;
     if (unlockAudio) {
@@ -349,26 +345,34 @@ function focusTouchCell(x, y, options = {}) {
     return;
   }
 
-  // VoiceOver focus uses a short delay so its brief "Sound, button"
-  // announcement can finish before Robin's tone. Direct touch bypasses this
-  // delay and plays immediately.
-  focusPlaybackTimer = window.setTimeout(() => {
-    focusPlaybackTimer = null;
-    playCell(x, y);
-  }, TOUCH_EXPLORATION_DELAY_MS);
+  // Use the same immediate cell-audio path as a direct touch. This schedules
+  // the tone at the instant VoiceOver moves focus, and also retries a paused
+  // iOS AudioContext instead of silently dropping the focus sound.
+  playDirectTouchCell(x, y);
 }
 
 function playDirectTouchCell(x, y) {
-  const token = ++directTouchAudioToken;
   const audio = ensureAudio();
   if (!audio) return;
   if (audio.state === "running") {
     scheduleCellAudio(audio, x, y);
     return;
   }
-  resumeAudioContext(audio).then((runningAudio) => {
-    if (runningAudio && token === directTouchAudioToken) {
-      scheduleCellAudio(runningAudio, x, y);
+
+  // iOS WebKit may resolve AudioContext.resume() after the original touch has
+  // lost its user-activation allowance. Queue the audible nodes synchronously
+  // inside touchstart, then resume the context; they play when it starts.
+  if (directTouchAudioPending) return;
+  directTouchAudioPending = true;
+  const resumeRequest = resumeAudioContext(audio);
+  scheduleCellAudio(audio, x, y);
+  resumeRequest.then((runningAudio) => {
+    directTouchAudioPending = false;
+    if (!runningAudio) {
+      setStatus(
+        "Robin audio needs another touch.",
+        "Touch a cell again or activate Start Robin audio.",
+      );
     }
   });
 }
@@ -457,17 +461,10 @@ function handleTouchCellClick(event, x, y) {
 }
 
 function activateTouchCell(x, y) {
-  cancelPendingFocusPlayback();
   cursorX = x;
   cursorY = y;
   updateRenderedCursor();
   addShapeAtCursor(false);
-}
-
-function cancelPendingFocusPlayback() {
-  if (focusPlaybackTimer === null) return;
-  window.clearTimeout(focusPlaybackTimer);
-  focusPlaybackTimer = null;
 }
 
 function updateRenderedCursor() {
@@ -672,7 +669,6 @@ function bindEvents() {
   });
   grid.addEventListener("touchcancel", resetDirectTouchGesture);
   const handleTouchInterfaceChange = () => {
-    cancelPendingFocusPlayback();
     setInterfaceMode(shouldUseTouchInterface());
     configureGridAccessibility();
     renderGrid({ focus: !isTouchInterface() });
