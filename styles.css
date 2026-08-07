@@ -29,6 +29,11 @@ body {
   background: var(--paper);
 }
 
+html[data-interface="touch"] .desktop-only,
+html[data-interface="desktop"] .touch-only {
+  display: none !important;
+}
+
 button,
 input,
 select {
@@ -237,7 +242,7 @@ kbd {
   overflow: hidden;
 }
 
-.mobile-controls {
+.touch-controls {
   display: none;
 }
 
@@ -475,210 +480,173 @@ kbd {
   }
 }
 
-@media (hover: none) and (pointer: coarse) {
-  main {
-    grid-template-columns: 1fr;
-  }
+html[data-interface="touch"] main {
+  grid-template-columns: 1fr;
+}
 
-  .map-panel {
-    grid-column: 1;
-    grid-row: 1;
-    height: auto;
-    min-height: 100vw;
-    overflow: visible;
-  }
+html[data-interface="touch"] .map-panel {
+  grid-column: 1;
+  grid-row: 1;
+  height: auto;
+  min-height: 100vw;
+  overflow: visible;
+}
 
-  .grid-layout {
-    width: min(100%, 760px);
-  }
+html[data-interface="touch"] .grid-layout {
+  width: min(100%, 760px);
+}
 
-  .map-touch-tools {
-    flex-basis: 100%;
-    margin-top: 0.75rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
+html[data-interface="touch"] .map-touch-tools {
+  flex-basis: 100%;
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
 
-  .map-help {
-    margin: 0;
-  }
+html[data-interface="touch"] .map-help {
+  margin: 0;
+}
 
-  .map-help[open] {
-    flex-basis: 100%;
-  }
+html[data-interface="touch"] .map-help[open] {
+  flex-basis: 100%;
+}
 
-  .map-touch-tools > button,
-  .map-help summary {
-    width: fit-content;
-    min-height: 2.75rem;
-    padding: 0.6rem 0.75rem;
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid var(--line-strong);
-    cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 700;
-  }
+html[data-interface="touch"] .map-touch-tools > button,
+html[data-interface="touch"] .map-help summary {
+  width: fit-content;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
 
-  .map-touch-tools > button:hover,
-  .map-help summary:hover {
-    background: #e9e9e3;
-  }
+html[data-interface="touch"] .map-touch-tools > button:hover,
+html[data-interface="touch"] .map-help summary:hover {
+  background: #e9e9e3;
+}
 
-  .map-touch-tools > button:focus-visible,
-  .map-help summary:focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 3px;
-  }
+html[data-interface="touch"] .map-touch-tools > button:focus-visible,
+html[data-interface="touch"] .map-help summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
 
-  .map-help p {
-    max-width: 36rem;
-    margin-top: 0.75rem;
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 0.78rem;
-    line-height: 1.5;
-  }
+html[data-interface="touch"] .map-help p {
+  max-width: 36rem;
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
 
-  .mobile-controls {
-    grid-column: 1;
-    grid-row: 2;
-    padding: 2rem 1.5rem;
-    display: grid;
-    gap: 1.5rem;
-    border-bottom: 1px solid var(--ink);
-  }
+html[data-interface="touch"] .touch-controls {
+  grid-column: 1;
+  grid-row: 2;
+  padding: 2rem 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--ink);
+}
 
-  .mobile-controls header {
-    max-width: 34rem;
-  }
+html[data-interface="touch"] .touch-controls header {
+  max-width: 34rem;
+}
 
-  .mobile-controls header .wordmark {
-    margin-bottom: 1.25rem;
-  }
+html[data-interface="touch"] .touch-controls header .wordmark {
+  margin-bottom: 1.25rem;
+}
 
-  .mobile-controls h2 {
-    margin: 0;
-    font-size: 1.5rem;
-  }
+html[data-interface="touch"] .touch-controls h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
 
-  .mobile-controls header p:last-child {
-    margin: 0.75rem 0 0;
-    color: var(--muted);
-    line-height: 1.55;
-  }
+html[data-interface="touch"] .touch-controls header p:last-child {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
 
-  .mobile-dpad {
-    width: min(100%, 14rem);
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 3.5rem);
-    gap: 0.4rem;
-  }
+html[data-interface="touch"] .touch-steps {
+  max-width: 36rem;
+  margin: 0;
+  padding-left: 1.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
 
-  .mobile-dpad button {
-    min-width: 3.5rem;
-    min-height: 3.5rem;
-    padding: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-  }
+html[data-interface="touch"] .touch-steps li + li {
+  margin-top: 0.45rem;
+}
 
-  .move-up {
-    grid-column: 2;
-    grid-row: 1;
-  }
+html[data-interface="touch"] .touch-shape-label {
+  max-width: 22rem;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
-  .move-left {
-    grid-column: 1;
-    grid-row: 2;
-  }
+html[data-interface="touch"] .touch-shape-label select {
+  min-height: 3rem;
+  padding: 0.65rem 2.5rem 0.65rem 0.75rem;
+  color: var(--ink);
+  background: var(--grid-paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+}
 
-  .move-right {
-    grid-column: 3;
-    grid-row: 2;
-  }
+html[data-interface="touch"] .touch-edit-actions,
+html[data-interface="touch"] .touch-playback > div {
+  max-width: 28rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
 
-  .move-down {
-    grid-column: 2;
-    grid-row: 3;
-  }
+html[data-interface="touch"] .touch-edit-actions button,
+html[data-interface="touch"] .touch-playback button,
+html[data-interface="touch"] .touch-blackout-toggle {
+  min-height: 3rem;
+  padding: 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
 
-  .mobile-shape-label {
-    max-width: 22rem;
-    display: grid;
-    gap: 0.5rem;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
+html[data-interface="touch"] .touch-blackout-toggle {
+  width: min(100%, 28rem);
+}
 
-  .mobile-shape-label select {
-    min-height: 3rem;
-    padding: 0.65rem 2.5rem 0.65rem 0.75rem;
-    color: var(--ink);
-    background: var(--grid-paper);
-    border: 1px solid var(--line-strong);
-    border-radius: 0;
-  }
+html[data-interface="touch"] .touch-playback h3,
+html[data-interface="touch"] .touch-project h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
-  .mobile-edit-actions,
-  .mobile-playback > div {
-    max-width: 28rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-
-  .mobile-edit-actions button,
-  .mobile-playback button,
-  .mobile-blackout-toggle {
-    min-height: 3rem;
-    padding: 0.7rem;
-    font-size: 0.78rem;
-    font-weight: 700;
-  }
-
-  .mobile-blackout-toggle {
-    width: min(100%, 28rem);
-  }
-
-  .mobile-playback h3 {
-    margin: 0 0 0.75rem;
-    font-size: 0.78rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .mobile-playback > p {
-    max-width: 28rem;
-    margin: -0.25rem 0 0.75rem;
-    color: var(--muted);
-    font-size: 0.75rem;
-    line-height: 1.5;
-  }
-
-  .instructions {
-    grid-column: 1;
-    grid-row: 3;
-    height: auto;
-    overflow: visible;
-    border-right: 0;
-    border-bottom: 1px solid var(--ink);
-  }
-
-  .instructions .how-to {
-    display: none;
-  }
+html[data-interface="touch"] .touch-playback > p {
+  max-width: 28rem;
+  margin: -0.25rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 520px) {
   .instructions,
   .map-panel,
-  .mobile-controls {
+  .touch-controls {
     padding: 1.5rem 1rem;
   }
 

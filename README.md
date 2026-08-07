@@ -37,10 +37,12 @@ to start again. The JSON format is compatible with the desktop version.
 
 ### Browser accessibility
 
-On desktop, the website is a simple two-column page with keyboard instructions
-on the left and the sound grid on the right. On iOS and other touch devices,
-the grid appears first, followed by dedicated mobile controls and concise
-touch instructions. Desktop-only shortcut documentation is hidden there.
+The same website automatically selects one of two separate interfaces. Desktop
+browsers receive the keyboard interface, with shortcut instructions beside the
+map. Touchscreen phones and tablets receive the touch interface, with the map
+first and dedicated VoiceOver controls below it. The inactive interface is
+removed from the layout and accessibility tree, rather than merely having its
+instructions reworded.
 
 The map is a semantic HTML grid rather than a drawing-only canvas:
 
@@ -63,8 +65,9 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
   entries in VoiceOver's Actions rotor, so these native HTML controls provide
   the interoperable browser equivalent.
 - Changes are reported through a polite live status region.
-- Desktop actions are keyboard-accessible; touch devices provide labelled
-  movement, shape, plotting, erasing, and playback controls.
+- Desktop actions are keyboard-accessible. The touch interface provides shape,
+  plotting, erasing, and playback controls, but no directional pad or keyboard
+  shortcut documentation.
 - Visible focus indicators are provided.
 - Increased-contrast and reduced-motion browser preferences are respected.
 
@@ -115,7 +118,7 @@ shape selection, and playback. The Python version additionally supports
 `Backspace` + arrow keys to erase while moving and `Command+N` or `Ctrl+N` to
 create a named project.
 
-## Mobile controls
+## Touchscreen website
 
 On iOS and other touch devices:
 
@@ -123,10 +126,11 @@ On iOS and other touch devices:
   swiping to a map cell to hear its position and plotted shapes.
 - Double-tap the focused cell to plot the selected shape.
 - With VoiceOver off, tapping a cell plots the selected shape. The four
-  movement buttons remain available for listening without plotting.
+  directional buttons are intentionally omitted; movement happens directly on
+  the grid.
 - Choose a shape from the native shape menu.
-- Use **Plot shape** as an alternative plotting control or **Delete last point**
-  to erase the most recently plotted shape at the focused coordinates.
+- Use **Plot shape** as an alternative plotting control or **Delete focused
+  point** to erase the most recently plotted shape at the focused coordinates.
 - Use **Play focused row**, **Play focused column**, **Sweep left to right**, or
   **Sweep bottom to top** for the four playback modes.
 - Use **Turn screen off** for presentation mode, then tap the black screen to

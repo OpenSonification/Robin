@@ -21,19 +21,24 @@ const demoPoints = [];
 
 const grid = document.querySelector("#sound-grid");
 const gridHelp = document.querySelector("#grid-help");
-const importInput = document.querySelector("#import-project");
-const statusTitle = document.querySelector("#status-title");
-const statusDetail = document.querySelector("#status-detail");
+const importInputs = [...document.querySelectorAll("[data-import-project]")];
+const statusTitles = [...document.querySelectorAll("[data-status-title]")];
+const statusDetails = [...document.querySelectorAll("[data-status-detail]")];
 const cursorXOutput = document.querySelector("#cursor-x");
 const cursorYOutput = document.querySelector("#cursor-y");
 const audioStartButton = document.querySelector("#audio-start");
-const mobileShapeSelect = document.querySelector("#mobile-shape");
-const mobilePlotButton = document.querySelector("#mobile-plot");
-const mobileBlackoutButton = document.querySelector("#mobile-blackout");
+const touchShapeSelect = document.querySelector("#touch-shape");
+const touchPlotButton = document.querySelector("#touch-plot");
+const blackoutToggleButtons = [
+  ...document.querySelectorAll("[data-blackout-toggle]"),
+];
 const blackoutScreen = document.querySelector("#blackout-screen");
 const touchInterfaceQuery = window.matchMedia(
   "(hover: none) and (pointer: coarse)",
 );
+const appleTouchDevice =
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 let gridCells = new Map();
 let cursorX = 0;
@@ -44,12 +49,25 @@ let playbackToken = 0;
 let blackout = false;
 let focusPlaybackTimer = null;
 
+setInterfaceMode(shouldUseTouchInterface());
 loadInitialGrid();
 buildAxes();
 bindEvents();
 configureGridAccessibility();
-renderGrid({ focus: !touchInterfaceQuery.matches });
+renderGrid({ focus: !isTouchInterface() });
 announceCurrentCell();
+
+function isTouchInterface() {
+  return document.documentElement.dataset.interface === "touch";
+}
+
+function setInterfaceMode(touch) {
+  document.documentElement.dataset.interface = touch ? "touch" : "desktop";
+}
+
+function shouldUseTouchInterface() {
+  return touchInterfaceQuery.matches || appleTouchDevice;
+}
 
 function pointKey(x, y) {
   return `${x},${y}`;
@@ -151,7 +169,7 @@ function buildAxes() {
 }
 
 function configureGridAccessibility() {
-  if (touchInterfaceQuery.matches) {
+  if (isTouchInterface()) {
     // iOS VoiceOver exposes native buttons reliably during touch exploration.
     // Desktop-style ARIA grid semantics and roving tabindex can otherwise make
     // cells with tabindex -1 difficult to discover by touching their location.
@@ -178,7 +196,7 @@ function configureGridAccessibility() {
 
 function renderGrid(options = {}) {
   const { focus = false } = options;
-  const touchGrid = touchInterfaceQuery.matches;
+  const touchGrid = isTouchInterface();
   const fragment = document.createDocumentFragment();
 
   for (let y = GRID_MAX; y >= GRID_MIN; y -= 1) {
@@ -278,7 +296,7 @@ function selectCell(x, y) {
   cursorX = x;
   cursorY = y;
   playCell(x, y);
-  if (touchInterfaceQuery.matches) {
+  if (isTouchInterface()) {
     updateRenderedCursor();
   } else {
     renderGrid({ focus: true });
@@ -319,7 +337,7 @@ function updateRenderedCursor() {
     const current =
       Number(cell.dataset.x) === cursorX && Number(cell.dataset.y) === cursorY;
     cell.classList.toggle("is-current", current);
-    if (current && !touchInterfaceQuery.matches) {
+    if (current && !isTouchInterface()) {
       cell.setAttribute("aria-current", "true");
     } else {
       cell.removeAttribute("aria-current");
@@ -364,7 +382,7 @@ function addShapeAtCursor(focus = false) {
   gridCells.set(key, shapes);
   saveGrid();
   playCell(cursorX, cursorY, true);
-  if (touchInterfaceQuery.matches) {
+  if (isTouchInterface()) {
     updateRenderedCell(cursorX, cursorY);
   } else {
     renderGrid({ focus });
@@ -383,7 +401,7 @@ function eraseAtCursor(focus = false) {
   saveGrid();
   if (removedShape) playBin(cursorX);
   playCell(cursorX, cursorY);
-  if (touchInterfaceQuery.matches) {
+  if (isTouchInterface()) {
     updateRenderedCell(cursorX, cursorY);
   } else {
     renderGrid({ focus });
@@ -398,12 +416,12 @@ function eraseAtCursor(focus = false) {
 
 function selectShape(shape, interfaceType = "keyboard") {
   activeShape = shape;
-  mobileShapeSelect.value = shape;
-  mobilePlotButton.textContent = `Plot ${shape}`;
+  touchShapeSelect.value = shape;
+  touchPlotButton.textContent = `Plot ${shape}`;
   setStatus(
     `${shapeLabel(activeShape)} selected.`,
-    interfaceType === "mobile"
-      ? `Use Plot ${shape} to plot it.`
+    interfaceType === "touch"
+      ? `Double-tap a focused cell or use Plot ${shape}.`
       : "Press Shift whilst in the grid to plot it.",
   );
 }
@@ -418,9 +436,13 @@ function announceCurrentCell() {
 }
 
 function setStatus(title, detail) {
-  statusTitle.textContent = title;
-  statusDetail.textContent = detail;
-  statusDetail.hidden = !detail;
+  statusTitles.forEach((element) => {
+    element.textContent = title;
+  });
+  statusDetails.forEach((element) => {
+    element.textContent = detail;
+    element.hidden = !detail;
+  });
 }
 
 function clearGrid() {
@@ -440,8 +462,9 @@ function clearGrid() {
   setStatus("The map is clear. x 0, y 0.", "");
 }
 
-async function importProject() {
-  const [file] = importInput.files;
+async function importProject(event) {
+  const input = event.currentTarget;
+  const [file] = input.files;
   if (!file) return;
 
   try {
@@ -461,7 +484,7 @@ async function importProject() {
       error.message || "The JSON project is not valid.",
     );
   } finally {
-    importInput.value = "";
+    input.value = "";
   }
 }
 
@@ -479,37 +502,37 @@ function exportProject() {
 }
 
 function bindEvents() {
-  document.querySelector("#clear-grid").addEventListener("click", clearGrid);
-  document.querySelector("#export-project").addEventListener("click", exportProject);
+  document.querySelectorAll("[data-clear-grid]").forEach((button) => {
+    button.addEventListener("click", clearGrid);
+  });
+  document.querySelectorAll("[data-export-project]").forEach((button) => {
+    button.addEventListener("click", exportProject);
+  });
   audioStartButton.addEventListener("click", startAudio);
-  importInput.addEventListener("change", importProject);
-  document.querySelectorAll("[data-move-x]").forEach((button) => {
-    button.addEventListener("click", () => {
-      moveCursor(
-        Number(button.dataset.moveX),
-        Number(button.dataset.moveY),
-        "move",
-        false,
-      );
-    });
+  importInputs.forEach((input) => {
+    input.addEventListener("change", importProject);
   });
-  mobileShapeSelect.addEventListener("change", () => {
-    selectShape(mobileShapeSelect.value, "mobile");
+  touchShapeSelect.addEventListener("change", () => {
+    selectShape(touchShapeSelect.value, "touch");
   });
-  mobilePlotButton.addEventListener("click", () => addShapeAtCursor(false));
+  touchPlotButton.addEventListener("click", () => addShapeAtCursor(false));
   document
-    .querySelector("#mobile-erase")
+    .querySelector("#touch-erase")
     .addEventListener("click", () => eraseAtCursor(false));
-  mobileBlackoutButton.addEventListener("click", toggleBlackout);
+  blackoutToggleButtons.forEach((button) => {
+    button.addEventListener("click", toggleBlackout);
+  });
   blackoutScreen.addEventListener("click", toggleBlackout);
-  document.querySelectorAll("[data-mobile-playback]").forEach((button) => {
+  document.querySelectorAll("[data-touch-playback]").forEach((button) => {
     button.addEventListener("click", () => {
-      runPlayback(button.dataset.mobilePlayback);
+      runPlayback(button.dataset.touchPlayback);
     });
   });
   const handleTouchInterfaceChange = () => {
+    cancelPendingFocusPlayback();
+    setInterfaceMode(shouldUseTouchInterface());
     configureGridAccessibility();
-    renderGrid({ focus: !touchInterfaceQuery.matches });
+    renderGrid({ focus: !isTouchInterface() });
   };
   if (typeof touchInterfaceQuery.addEventListener === "function") {
     touchInterfaceQuery.addEventListener("change", handleTouchInterfaceChange);
@@ -520,6 +543,8 @@ function bindEvents() {
 }
 
 function handleKeyDown(event) {
+  if (isTouchInterface()) return;
+
   if (
     event.target instanceof HTMLInputElement ||
     event.target instanceof HTMLSelectElement
@@ -741,13 +766,17 @@ function playToggleSound(turningOff) {
 function toggleBlackout() {
   blackout = !blackout;
   blackoutScreen.hidden = !blackout;
-  mobileBlackoutButton.textContent = blackout
-    ? "Turn screen on"
-    : "Turn screen off";
+  blackoutToggleButtons.forEach((button) => {
+    button.textContent = blackout ? "Turn screen on" : "Turn screen off";
+  });
   playToggleSound(blackout);
   setStatus(
     blackout ? "Screen off." : "Screen on.",
-    blackout ? "Press Space or tap the screen to restore it." : "",
+    blackout
+      ? isTouchInterface()
+        ? "Tap the screen to restore it."
+        : "Press Space or click the screen to restore it."
+      : "",
   );
 }
 
@@ -833,39 +862,52 @@ async function runPlayback(kind) {
     columns: "Playing plotted shapes by column.",
     rows: "Playing plotted shapes by row.",
   };
-  setStatus(messages[kind], "Use an arrow key in the grid to stop.");
+  setStatus(
+    messages[kind],
+    isTouchInterface()
+      ? "Focus another cell to stop."
+      : "Use an arrow key in the grid to stop.",
+  );
 
   if (kind === "row") {
     for (let x = GRID_MIN; x <= GRID_MAX && token === playbackToken; x += 1) {
       cursorX = x;
       playCell(x, cursorY);
-      renderGrid();
+      renderPlaybackCursor();
       await delay(110);
     }
   } else if (kind === "column") {
     for (let y = GRID_MIN; y <= GRID_MAX && token === playbackToken; y += 1) {
       cursorY = y;
       playCell(cursorX, y);
-      renderGrid();
+      renderPlaybackCursor();
       await delay(110);
     }
   } else if (kind === "columns") {
     for (let x = GRID_MIN; x <= GRID_MAX && token === playbackToken; x += 1) {
       cursorX = x;
       for (let y = GRID_MIN; y <= GRID_MAX; y += 1) playPlottedCell(x, y);
-      renderGrid();
+      renderPlaybackCursor();
       await delay(160);
     }
   } else if (kind === "rows") {
     for (let y = GRID_MIN; y <= GRID_MAX && token === playbackToken; y += 1) {
       cursorY = y;
       for (let x = GRID_MIN; x <= GRID_MAX; x += 1) playPlottedCell(x, y);
-      renderGrid();
+      renderPlaybackCursor();
       await delay(160);
     }
   }
 
   if (token === playbackToken) {
     setStatus("Playback complete.", `x ${cursorX}, y ${cursorY}.`);
+  }
+}
+
+function renderPlaybackCursor() {
+  if (isTouchInterface()) {
+    updateRenderedCursor();
+  } else {
+    renderGrid();
   }
 }

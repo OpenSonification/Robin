@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-interface="desktop">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +9,18 @@
     >
     <meta name="theme-color" content="#f7f7f2">
     <title>Robin — an accessible sound grid</title>
+    <script>
+      (() => {
+        const coarseTouch = window.matchMedia(
+          "(hover: none) and (pointer: coarse)",
+        ).matches;
+        const appleTouch =
+          /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        document.documentElement.dataset.interface =
+          coarseTouch || appleTouch ? "touch" : "desktop";
+      })();
+    </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
     <script src="app.js" defer></script>
@@ -24,7 +36,7 @@
             x <strong id="cursor-x">0</strong>,
             y <strong id="cursor-y">0</strong>
           </p>
-          <div class="map-touch-tools">
+          <div class="map-touch-tools touch-only">
             <button id="audio-start" type="button">
               Start Robin audio
             </button>
@@ -65,40 +77,32 @@
         </div>
       </section>
 
-      <section class="mobile-controls" aria-labelledby="mobile-controls-title">
+      <section
+        class="touch-controls touch-only"
+        aria-labelledby="touch-controls-title"
+      >
         <header>
           <p class="wordmark">Robin</p>
-          <h2 id="mobile-controls-title">Use Robin on mobile</h2>
+          <h2 id="touch-controls-title">Touch controls</h2>
           <p>
-            With VoiceOver on, use Start Robin audio once, then touch or swipe
-            to a map cell to hear its sound. Double-tap the focused cell to
-            plot the selected shape. The controls below provide alternatives
-            for moving, plotting, deleting, and playing across the map.
+            These controls are for touchscreen phones and tablets. There are
+            no keyboard or directional-arrow controls in this version.
           </p>
         </header>
 
-        <div class="mobile-dpad" aria-label="Move around the grid">
-          <button class="move-up" data-move-x="0" data-move-y="1" type="button">
-            <span aria-hidden="true">↑</span>
-            <span class="visually-hidden">Move up</span>
-          </button>
-          <button class="move-left" data-move-x="-1" data-move-y="0" type="button">
-            <span aria-hidden="true">←</span>
-            <span class="visually-hidden">Move left</span>
-          </button>
-          <button class="move-right" data-move-x="1" data-move-y="0" type="button">
-            <span aria-hidden="true">→</span>
-            <span class="visually-hidden">Move right</span>
-          </button>
-          <button class="move-down" data-move-x="0" data-move-y="-1" type="button">
-            <span aria-hidden="true">↓</span>
-            <span class="visually-hidden">Move down</span>
-          </button>
-        </div>
+        <ol class="touch-steps">
+          <li>Activate <strong>Start Robin audio</strong> above the map once.</li>
+          <li>Choose the shape you want to plot.</li>
+          <li>
+            With VoiceOver on, drag one finger over the map or swipe between
+            cells. Robin plays a cell as soon as VoiceOver focuses it.
+          </li>
+          <li>Double-tap the focused cell to plot the selected shape.</li>
+        </ol>
 
-        <label class="mobile-shape-label" for="mobile-shape">
+        <label class="touch-shape-label" for="touch-shape">
           Shape
-          <select id="mobile-shape">
+          <select id="touch-shape">
             <option value="square">Square</option>
             <option value="circle" selected>Circle</option>
             <option value="triangle">Triangle</option>
@@ -106,27 +110,52 @@
           </select>
         </label>
 
-        <div class="mobile-edit-actions">
-          <button id="mobile-plot" type="button">Plot circle</button>
-          <button id="mobile-erase" type="button">Delete last point</button>
+        <div class="touch-edit-actions">
+          <button id="touch-plot" type="button">Plot circle</button>
+          <button id="touch-erase" type="button">Delete focused point</button>
         </div>
-        <button class="mobile-blackout-toggle" id="mobile-blackout" type="button">
+
+        <section class="touch-playback" aria-labelledby="touch-playback-title">
+          <h3 id="touch-playback-title">Focused cell actions</h3>
+          <p>
+            These browser-accessible buttons provide the delete and playback
+            actions for the cell most recently focused or selected.
+          </p>
+          <div>
+            <button data-touch-playback="row" type="button">Play focused row</button>
+            <button data-touch-playback="column" type="button">Play focused column</button>
+            <button data-touch-playback="columns" type="button">Sweep left to right</button>
+            <button data-touch-playback="rows" type="button">Sweep bottom to top</button>
+          </div>
+        </section>
+
+        <button class="touch-blackout-toggle" data-blackout-toggle type="button">
           Turn screen off
         </button>
 
-        <section class="mobile-playback" aria-labelledby="mobile-playback-title">
-          <h3 id="mobile-playback-title">Focused cell actions</h3>
-          <p>These actions use the cell most recently focused or selected.</p>
-          <div>
-            <button data-mobile-playback="row" type="button">Play focused row</button>
-            <button data-mobile-playback="column" type="button">Play focused column</button>
-            <button data-mobile-playback="columns" type="button">Sweep left to right</button>
-            <button data-mobile-playback="rows" type="button">Sweep bottom to top</button>
+        <section class="touch-project" aria-labelledby="touch-project-title">
+          <h3 id="touch-project-title">Map files</h3>
+          <div class="file-actions" aria-label="Map file controls">
+            <label>
+              Open JSON
+              <input data-import-project type="file" accept=".json,application/json">
+            </label>
+            <button data-export-project type="button">Save JSON</button>
+            <button data-clear-grid type="button">Clear map</button>
           </div>
+          <p class="save-note">
+            Your map saves automatically in this browser. JSON files also work
+            with the Python version.
+          </p>
         </section>
+
+        <div class="status" role="status" aria-live="polite" aria-atomic="true">
+          <strong data-status-title>x 0, y 0</strong>
+          <span data-status-detail hidden></span>
+        </div>
       </section>
 
-      <section class="instructions" aria-labelledby="robin-title">
+      <section class="instructions desktop-only" aria-labelledby="robin-title">
         <header>
           <p class="wordmark" id="robin-title">Robin</p>
           <p class="introduction">
@@ -191,17 +220,17 @@
         </section>
 
         <div class="status" role="status" aria-live="polite" aria-atomic="true">
-          <strong id="status-title">x 0, y 0</strong>
-          <span id="status-detail" hidden></span>
+          <strong data-status-title>x 0, y 0</strong>
+          <span data-status-detail hidden></span>
         </div>
 
         <div class="file-actions" aria-label="File controls">
           <label>
             Open JSON
-            <input id="import-project" type="file" accept=".json,application/json">
+            <input data-import-project type="file" accept=".json,application/json">
           </label>
-          <button id="export-project" type="button">Save JSON</button>
-          <button id="clear-grid" type="button">Clear map</button>
+          <button data-export-project type="button">Save JSON</button>
+          <button data-clear-grid type="button">Clear map</button>
         </div>
         <p class="save-note">
           Your map saves automatically in this browser. JSON files also work
