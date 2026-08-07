@@ -10,6 +10,8 @@ const CELL_TONE_DURATION = 0.22;
 const DESKTOP_CELL_TONE_VOLUME = 0.3;
 const TOUCH_CELL_TONE_VOLUME = 0.42;
 const TOUCH_EXPLORATION_DELAY_MS = 180;
+const TOUCH_EVENT_DEDUPLICATION_MS = 500;
+const DIRECT_DOUBLE_TAP_MS = 450;
 const VALID_SHAPES = ["square", "circle", "triangle", "diamond"];
 const SHAPE_SYMBOLS = {
   square: "□",
@@ -55,6 +57,15 @@ let audioUnlocked = false;
 let playbackToken = 0;
 let blackout = false;
 let focusPlaybackTimer = null;
+let lastTouchExplorationKey = null;
+let lastTouchExplorationAt = 0;
+let directTouchStartKey = null;
+let directTouchCurrentKey = null;
+let directTouchMoved = false;
+let lastDirectTapKey = null;
+let lastDirectTapAt = 0;
+let ignorePhysicalClickUntil = 0;
+let directTouchAudioToken = 0;
 
 setInterfaceMode(shouldUseTouchInterface());
 loadInitialGrid();
@@ -109,6 +120,7 @@ function loadInitialGrid() {
 
 function restoreStarterMap() {
   cancelPendingFocusPlayback();
+  resetDirectTouchGesture();
   cancelPlayback();
   cursorX = 0;
   cursorY = 0;
@@ -216,12 +228,18 @@ function renderGrid(options = {}) {
         cell.addEventListener("focus", exploreCell);
         // VoiceOver navigation and direct touch do not produce exactly the
         // same DOM events across WebKit versions. These redundant, read-only
-        // exploration handlers improve coverage without changing activation:
-        // only the click handler below plots a shape.
+        // exploration handlers improve coverage without changing activation.
+        // Direct double-tap and synthesized activation are handled separately.
         cell.addEventListener("pointerenter", exploreCell);
         cell.addEventListener("mouseover", exploreCell);
-        cell.addEventListener("touchstart", exploreCell, { passive: true });
-        cell.addEventListener("click", () => activateTouchCell(x, y));
+        cell.addEventListener(
+          "touchstart",
+          (event) => beginDirectTouch(event, x, y),
+          { passive: false },
+        );
+        cell.addEventListener("click", (event) => {
+          handleTouchCellClick(event, x, y);
+        });
       } else {
         cell.addEventListener("click", () => selectCell(x, y));
       }
@@ -298,21 +316,144 @@ function selectCell(x, y) {
   announceCurrentCell();
 }
 
-function focusTouchCell(x, y) {
-  if (focusPlaybackTimer !== null && cursorX === x && cursorY === y) return;
+function focusTouchCell(x, y, options = {}) {
+  const {
+    immediate = false,
+    unlockAudio = false,
+    playAudio = true,
+  } = options;
+  const key = pointKey(x, y);
+  const now = performance.now();
+  if (
+    !immediate &&
+    key === lastTouchExplorationKey &&
+    now - lastTouchExplorationAt < TOUCH_EVENT_DEDUPLICATION_MS
+  ) {
+    return;
+  }
+  lastTouchExplorationKey = key;
+  lastTouchExplorationAt = now;
 
   cancelPlayback();
   cursorX = x;
   cursorY = y;
   updateRenderedCursor();
   cancelPendingFocusPlayback();
-  // The delay prevents a sighted tap from playing twice and lets VoiceOver's
-  // very short "Sound, button" announcement finish before Robin's tone. The
-  // subsequent click still cancels this read-only playback before plotting.
+  if (immediate) {
+    if (!playAudio) return;
+    if (unlockAudio) {
+      playDirectTouchCell(x, y);
+    } else {
+      playCell(x, y);
+    }
+    return;
+  }
+
+  // VoiceOver focus uses a short delay so its brief "Sound, button"
+  // announcement can finish before Robin's tone. Direct touch bypasses this
+  // delay and plays immediately.
   focusPlaybackTimer = window.setTimeout(() => {
     focusPlaybackTimer = null;
     playCell(x, y);
   }, TOUCH_EXPLORATION_DELAY_MS);
+}
+
+function playDirectTouchCell(x, y) {
+  const token = ++directTouchAudioToken;
+  const audio = ensureAudio();
+  if (!audio) return;
+  if (audio.state === "running") {
+    scheduleCellAudio(audio, x, y);
+    return;
+  }
+  resumeAudioContext(audio).then((runningAudio) => {
+    if (runningAudio && token === directTouchAudioToken) {
+      scheduleCellAudio(runningAudio, x, y);
+    }
+  });
+}
+
+function beginDirectTouch(event, x, y) {
+  if (event.touches.length !== 1) return;
+  event.preventDefault();
+  const now = performance.now();
+  directTouchStartKey = pointKey(x, y);
+  directTouchCurrentKey = directTouchStartKey;
+  directTouchMoved = false;
+  ignorePhysicalClickUntil = now + DIRECT_DOUBLE_TAP_MS * 2;
+  const completingDoubleTap =
+    directTouchStartKey === lastDirectTapKey &&
+    now - lastDirectTapAt <= DIRECT_DOUBLE_TAP_MS;
+  focusTouchCell(x, y, {
+    immediate: true,
+    unlockAudio: true,
+    playAudio: !completingDoubleTap,
+  });
+}
+
+function handleDirectTouchMove(event) {
+  if (directTouchStartKey === null || event.touches.length !== 1) return;
+  event.preventDefault();
+  const touch = event.touches[0];
+  const cell = document
+    .elementFromPoint(touch.clientX, touch.clientY)
+    ?.closest(".grid-cell");
+  if (!cell || !grid.contains(cell)) {
+    directTouchMoved = true;
+    return;
+  }
+
+  const key = pointKey(Number(cell.dataset.x), Number(cell.dataset.y));
+  if (key === directTouchCurrentKey) return;
+  directTouchCurrentKey = key;
+  if (key !== directTouchStartKey) directTouchMoved = true;
+  focusTouchCell(Number(cell.dataset.x), Number(cell.dataset.y), {
+    immediate: true,
+    unlockAudio: true,
+  });
+}
+
+function handleDirectTouchEnd(event) {
+  if (directTouchStartKey === null) return;
+  event.preventDefault();
+  const completedKey = directTouchCurrentKey;
+  const wasTap = !directTouchMoved && completedKey === directTouchStartKey;
+  resetDirectTouchGesture();
+  if (!wasTap) {
+    lastDirectTapKey = null;
+    lastDirectTapAt = 0;
+    return;
+  }
+
+  const now = performance.now();
+  if (
+    completedKey === lastDirectTapKey &&
+    now - lastDirectTapAt <= DIRECT_DOUBLE_TAP_MS
+  ) {
+    lastDirectTapKey = null;
+    lastDirectTapAt = 0;
+    const [x, y] = completedKey.split(",").map(Number);
+    activateTouchCell(x, y);
+  } else {
+    lastDirectTapKey = completedKey;
+    lastDirectTapAt = now;
+  }
+}
+
+function resetDirectTouchGesture() {
+  directTouchStartKey = null;
+  directTouchCurrentKey = null;
+  directTouchMoved = false;
+}
+
+function handleTouchCellClick(event, x, y) {
+  // A physical iOS tap is handled by the touch sequence above. VoiceOver and
+  // keyboard activation instead synthesize a click, which must still plot.
+  if (event.detail > 0 && performance.now() < ignorePhysicalClickUntil) {
+    event.preventDefault();
+    return;
+  }
+  activateTouchCell(x, y);
 }
 
 function activateTouchCell(x, y) {
@@ -523,6 +664,13 @@ function bindEvents() {
       runPlayback(button.dataset.touchPlayback);
     });
   });
+  grid.addEventListener("touchmove", handleDirectTouchMove, {
+    passive: false,
+  });
+  grid.addEventListener("touchend", handleDirectTouchEnd, {
+    passive: false,
+  });
+  grid.addEventListener("touchcancel", resetDirectTouchGesture);
   const handleTouchInterfaceChange = () => {
     cancelPendingFocusPlayback();
     setInterfaceMode(shouldUseTouchInterface());

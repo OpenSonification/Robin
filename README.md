@@ -131,13 +131,16 @@ On iOS and other touch devices:
   giving users two visible and audible example points to explore. Website
   changes last for the current session only unless the user chooses **Save
   JSON**.
-- Activate **Start Robin audio** once, then move VoiceOver focus by touching or
-  swiping to a map cell to hear its position tone. An empty cell plays the tone
-  by itself, while plotted cells layer their shape sounds over it.
-- Double-tap the focused cell to plot the selected shape.
-- With VoiceOver off, tapping a cell plots the selected shape. The four
-  directional buttons are intentionally omitted; movement happens directly on
-  the grid.
+- With VoiceOver off, the first touch starts Robin audio and plays that cell
+  without changing it. Keeping one finger down and dragging plays each crossed
+  cell; double-tapping a cell plots the selected shape.
+- With VoiceOver on, activate **Start Robin audio** once, then move VoiceOver
+  focus by touching or swiping to a map cell to hear its position tone. Use
+  VoiceOver's double-tap to plot the selected shape. An empty cell plays the
+  position tone by itself, while plotted cells layer their shape sounds over
+  it.
+- The four directional buttons are intentionally omitted; movement happens
+  directly on the grid.
 - Choose a shape from the native shape menu.
 - Use **Plot shape** as an alternative plotting control or **Delete focused
   point** to erase the most recently plotted shape at the focused coordinates.
