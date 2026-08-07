@@ -41,6 +41,9 @@ const voiceOverActionButtons = [
 ];
 const voiceOverModeToggle = document.querySelector("#voiceover-mode-toggle");
 const voiceOverActions = document.querySelector("#voiceover-actions");
+const voiceOverSelectedAction = document.querySelector(
+  "#voiceover-selected-action",
+);
 const blackoutToggleButtons = [
   ...document.querySelectorAll("[data-blackout-toggle]"),
 ];
@@ -62,6 +65,7 @@ let audioUnlocked = false;
 let playbackToken = 0;
 let blackout = false;
 let voiceOverMode = false;
+let selectedVoiceOverActionButton = null;
 let focusPlaybackTimer = null;
 let delayedCellOutput = null;
 let delayedCellOutputCleanupTimer = null;
@@ -103,10 +107,36 @@ function syncVoiceOverMode() {
     ? "Turn off VoiceOver controls"
     : "Turn on VoiceOver controls";
   voiceOverActions.hidden = !voiceOverMode;
-  if (!voiceOverMode) voiceOverActions.open = false;
   voiceOverActionButtons.forEach((button) => {
     button.tabIndex = voiceOverMode ? 0 : -1;
   });
+  if (voiceOverMode) {
+    selectVoiceOverAction(voiceOverActionButtons[0]);
+  } else {
+    clearSelectedVoiceOverAction();
+  }
+}
+
+function selectVoiceOverAction(button) {
+  if (!button) return;
+  selectedVoiceOverActionButton = button;
+  voiceOverActionButtons.forEach((actionButton) => {
+    actionButton.classList.toggle(
+      "is-selected-action",
+      actionButton === button,
+    );
+  });
+  voiceOverSelectedAction.textContent = button.textContent
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function clearSelectedVoiceOverAction() {
+  selectedVoiceOverActionButton = null;
+  voiceOverActionButtons.forEach((button) => {
+    button.classList.remove("is-selected-action");
+  });
+  voiceOverSelectedAction.textContent = "None";
 }
 
 function setVoiceOverMode(enabled, options = {}) {
@@ -753,6 +783,9 @@ function syncTouchShapeControls() {
   touchPlotButtons.forEach((button) => {
     button.textContent = `Plot ${activeShape}`;
   });
+  if (selectedVoiceOverActionButton) {
+    selectVoiceOverAction(selectedVoiceOverActionButton);
+  }
 }
 
 function shapeLabel(shape) {
@@ -840,6 +873,13 @@ function bindEvents() {
   importInputs.forEach((input) => {
     input.addEventListener("change", importProject);
   });
+  voiceOverActionButtons.forEach((button) => {
+    button.addEventListener("focus", () => {
+      cancelPendingFocusPlayback();
+      selectVoiceOverAction(button);
+    });
+    button.addEventListener("click", () => selectVoiceOverAction(button));
+  });
   touchShapeSelects.forEach((select) => {
     select.addEventListener("change", () => {
       selectShape(select.value, "touch");
@@ -891,6 +931,7 @@ function bindEvents() {
     passive: false,
   });
   grid.addEventListener("touchcancel", resetDirectTouchGesture);
+  grid.addEventListener("focusout", cancelPendingFocusPlayback);
   const handleTouchInterfaceChange = () => {
     setInterfaceMode(shouldUseTouchInterface());
     if (!isTouchInterface()) setVoiceOverMode(false);
