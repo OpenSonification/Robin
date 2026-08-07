@@ -496,10 +496,14 @@ html[data-interface="touch"] .grid-layout {
   width: min(100%, 760px);
 }
 
-html[data-interface="touch"] .sound-grid {
+html[data-interface="touch"][data-voiceover="off"] .sound-grid {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+html[data-interface="touch"][data-voiceover="on"] .sound-grid {
+  touch-action: auto;
 }
 
 html[data-interface="touch"] .map-touch-tools {
@@ -509,6 +513,89 @@ html[data-interface="touch"] .map-touch-tools {
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.5rem;
+}
+
+html[data-interface="touch"] .voiceover-mode-toggle {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html[data-interface="touch"] .voiceover-mode-toggle[aria-pressed="true"] {
+  color: white;
+  background: var(--ink);
+}
+
+html[data-interface="touch"] .voiceover-actions {
+  flex-basis: 100%;
+  display: block;
+}
+
+html[data-interface="touch"] .voiceover-actions[hidden] {
+  display: none;
+}
+
+html[data-interface="touch"] .voiceover-actions summary {
+  width: fit-content;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html[data-interface="touch"] .voiceover-actions summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+html[data-interface="touch"] .voiceover-actions-body {
+  margin-top: 0.5rem;
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.75rem;
+  border: 2px solid var(--ink);
+}
+
+html[data-interface="touch"] .voiceover-actions p {
+  margin: 0;
+  font-family: inherit;
+  max-width: 38rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+html[data-interface="touch"] .voiceover-actions label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+html[data-interface="touch"] .voiceover-actions select,
+html[data-interface="touch"] .voiceover-actions button {
+  min-height: 2.75rem;
+  padding: 0.6rem;
+  color: var(--ink);
+  background: var(--grid-paper);
+  border: 1px solid var(--line-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html[data-interface="touch"] .voiceover-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+html[data-interface="touch"][data-voiceover="on"] [data-standard-touch-actions] {
+  display: none;
 }
 
 html[data-interface="touch"] .map-help {
@@ -588,6 +675,11 @@ html[data-interface="touch"] .touch-steps {
 
 html[data-interface="touch"] .touch-steps li + li {
   margin-top: 0.45rem;
+}
+
+html[data-interface="touch"] [data-standard-touch-actions] {
+  display: grid;
+  gap: 1.5rem;
 }
 
 html[data-interface="touch"] .touch-shape-label {
