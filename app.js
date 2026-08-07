@@ -17,14 +17,8 @@ const SHAPE_SYMBOLS = {
   triangle: "△",
   diamond: "◇",
 };
-const STORAGE_KEY = "robin-grid-v2";
-const STARTER_VERSION_KEY = "robin-starter-version";
-const STARTER_VERSION = "1";
-const OLD_STORAGE_KEY = "robin-projects-v1";
-const OLD_CURRENT_KEY = "robin-current-project-v1";
-
-// A new browser starts with two contrasting points so the map is immediately
-// visible and sonically explorable. Once saved, the user's own map takes over.
+// Every page load starts with two contrasting points so the map is immediately
+// visible and sonically explorable. Browser state is deliberately not saved.
 const demoPoints = [
   { x: -2, y: -2, shapes: ["square"] },
   { x: 2, y: 2, shapes: ["circle"] },
@@ -110,49 +104,7 @@ function normalisePoints(data) {
 }
 
 function loadInitialGrid() {
-  let points = null;
-
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (stored) points = normalisePoints(stored);
-  } catch {
-    points = null;
-  }
-
-  if (!points) {
-    try {
-      const oldProjects = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || "{}");
-      const oldCurrent = localStorage.getItem(OLD_CURRENT_KEY);
-      const oldProject =
-        oldProjects[oldCurrent] ||
-        Object.values(oldProjects).sort(
-          (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0),
-        )[0];
-      if (oldProject) points = normalisePoints(oldProject);
-    } catch {
-      points = null;
-    }
-  }
-
-  let starterSeen = false;
-  try {
-    starterSeen = localStorage.getItem(STARTER_VERSION_KEY) === STARTER_VERSION;
-  } catch {
-    starterSeen = false;
-  }
-
-  // Existing browsers may already have saved an empty map before starter
-  // points were introduced. Seed those once, while never replacing a map that
-  // contains the user's work. After this first load, Clear map remains empty.
-  if (!points || (!points.length && !starterSeen)) points = demoPoints;
-
-  setPoints(points);
-  saveGrid();
-  try {
-    localStorage.setItem(STARTER_VERSION_KEY, STARTER_VERSION);
-  } catch {
-    // saveGrid already reports unavailable browser storage.
-  }
+  setPoints(demoPoints);
 }
 
 function setPoints(points) {
@@ -167,20 +119,6 @@ function projectPoints() {
     const [x, y] = key.split(",").map(Number);
     return { x, y, shapes: [...shapes] };
   });
-}
-
-function saveGrid() {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ points: projectPoints() }),
-    );
-  } catch {
-    setStatus(
-      "Browser storage is unavailable.",
-      "Use Save JSON to keep a copy of your map.",
-    );
-  }
 }
 
 function buildAxes() {
@@ -426,7 +364,6 @@ function addShapeAtCursor(focus = false) {
   const shapes = gridCells.get(key) || [];
   shapes.push(activeShape);
   gridCells.set(key, shapes);
-  saveGrid();
   playCell(cursorX, cursorY, true);
   if (isTouchInterface()) {
     updateRenderedCell(cursorX, cursorY);
@@ -444,7 +381,6 @@ function eraseAtCursor(focus = false) {
   const shapes = gridCells.get(key);
   const removedShape = shapes?.pop();
   if (shapes && !shapes.length) gridCells.delete(key);
-  saveGrid();
   if (removedShape) playBin(cursorX);
   playCell(cursorX, cursorY);
   if (isTouchInterface()) {
@@ -503,9 +439,11 @@ function clearGrid() {
   gridCells = new Map();
   cursorX = 0;
   cursorY = 0;
-  saveGrid();
   renderGrid();
-  setStatus("The map is clear. x 0, y 0.", "");
+  setStatus(
+    "The map is clear for this session. x 0, y 0.",
+    "Reload the page to restore the starter example.",
+  );
 }
 
 async function importProject(event) {
@@ -518,7 +456,6 @@ async function importProject(event) {
     setPoints(normalisePoints(data));
     cursorX = 0;
     cursorY = 0;
-    saveGrid();
     renderGrid();
     setStatus(
       `Opened ${file.name}.`,
@@ -535,7 +472,6 @@ async function importProject(event) {
 }
 
 function exportProject() {
-  saveGrid();
   const data = JSON.stringify({ points: projectPoints() }, null, 2);
   const blob = new Blob([data], { type: "application/json" });
   const url = URL.createObjectURL(blob);
