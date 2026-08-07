@@ -496,6 +496,12 @@ html[data-interface="touch"] .grid-layout {
   width: min(100%, 760px);
 }
 
+html[data-interface="touch"] .sound-grid {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 html[data-interface="touch"] .map-touch-tools {
   flex-basis: 100%;
   margin-top: 0.75rem;

@@ -36,7 +36,7 @@
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
-    <script src="app.js?v=20260807-ios-reset" defer></script>
+    <script src="app.js?v=20260807-touch-gestures" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>
@@ -58,11 +58,12 @@
               <p>
                 Robin is an 11 by 11 grid from minus 5 to 5 on both axes.
                 Moving up raises the pitch, and moving left or right moves the
-                sound between your headphones. With VoiceOver on, start Robin
-                audio once, then touch or swipe to a cell to hear its position
-                tone. An empty cell plays the position tone on its own; plotted
-                shapes add their sounds on top. Double-tap the focused cell to
-                plot the selected shape.
+                sound between your headphones. With VoiceOver off, touch a cell
+                once or drag over the map to hear position tones, then
+                double-tap a cell to plot. With VoiceOver on, start Robin audio
+                once, touch or swipe to hear cells, then use VoiceOver's
+                double-tap to plot. An empty cell plays its position tone on its
+                own; plotted shapes add their sounds on top.
               </p>
             </details>
           </div>
@@ -106,14 +107,20 @@
         </header>
 
         <ol class="touch-steps">
-          <li>Activate <strong>Start Robin audio</strong> above the map once.</li>
           <li>Choose the shape you want to plot.</li>
           <li>
-            With VoiceOver on, drag one finger over the map or swipe between
-            cells. Robin plays every cell as soon as VoiceOver focuses it,
-            including an empty cell.
+            With VoiceOver off, touch a cell once to hear it. The first touch
+            also starts Robin audio.
           </li>
-          <li>Double-tap the focused cell to plot the selected shape.</li>
+          <li>
+            Keep one finger down and drag across the map to hear each cell you
+            cross. Double-tap a cell to plot the selected shape.
+          </li>
+          <li>
+            With VoiceOver on, activate <strong>Start Robin audio</strong> above
+            the map once. Touch or swipe to hear cells, then use VoiceOver's
+            double-tap on the focused cell to plot.
+          </li>
         </ol>
 
         <label class="touch-shape-label" for="touch-shape">
