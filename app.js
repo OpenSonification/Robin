@@ -107,6 +107,19 @@ function loadInitialGrid() {
   setPoints(demoPoints);
 }
 
+function restoreStarterMap() {
+  cancelPendingFocusPlayback();
+  cancelPlayback();
+  cursorX = 0;
+  cursorY = 0;
+  activeShape = "circle";
+  touchShapeSelect.value = activeShape;
+  touchPlotButton.textContent = "Plot circle";
+  setPoints(demoPoints);
+  renderGrid({ focus: !isTouchInterface() });
+  announceCurrentCell();
+}
+
 function setPoints(points) {
   gridCells = new Map();
   for (const point of points) {
@@ -522,7 +535,12 @@ function bindEvents() {
     touchInterfaceQuery.addListener(handleTouchInterfaceChange);
   }
   document.addEventListener("visibilitychange", recoverInterruptedAudio);
-  window.addEventListener("pageshow", recoverInterruptedAudio);
+  window.addEventListener("pageshow", (event) => {
+    recoverInterruptedAudio();
+    // iOS WebKit can restore a complete page from its back-forward cache
+    // without rerunning the script. Discard that preserved session map too.
+    if (event.persisted) restoreStarterMap();
+  });
   window.addEventListener("keydown", handleKeyDown);
 }
 
