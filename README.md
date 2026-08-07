@@ -26,9 +26,11 @@ python3 -m http.server 8000
 Then open <http://localhost:8000> in a modern browser. Stop the server with
 `Ctrl+C`.
 
-The browser version uses the Web Audio API. On touch devices, the first cell
-tap starts audio and plays that cell; there is no separate audio-start control.
-Headphones make the left-to-right panning easiest to hear.
+The browser version uses the Web Audio API. With ordinary touch, the first cell
+tap starts audio and plays that cell. VoiceOver users turn on the dedicated
+VoiceOver controls once before exploring the map; that explicit activation is
+required by iOS to start web audio. Headphones make the left-to-right panning
+easiest to hear.
 
 Every page load starts from Robin's two-point example; the website does not
 restore or autosave browser state. Use **Save JSON** before leaving to download
@@ -42,9 +44,9 @@ page restored from WebKit's back-forward cache also returns to the example.
 The same website automatically selects one of two separate interfaces. Desktop
 browsers receive the keyboard interface, with shortcut instructions beside the
 map. Touchscreen phones and tablets receive the touch interface, with the map
-first and dedicated VoiceOver controls below it. The inactive interface is
-removed from the layout and accessibility tree, rather than merely having its
-instructions reworded.
+first and a dedicated VoiceOver actions disclosure immediately above it. The
+inactive interface is removed from the layout and accessibility tree, rather
+than merely having its instructions reworded.
 
 The map is a semantic HTML grid rather than a drawing-only canvas:
 
@@ -56,19 +58,22 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
   create a long tab sequence.
 - On desktop, a screen reader announces each cell's x and y coordinates
   followed by any plotted shapes. Empty cells announce only their coordinates.
-- On iOS, every map cell is exposed as a native button so VoiceOver users can
-  find cells by touching the map or swiping through it. Moving VoiceOver focus
-  to a cell always plays its position tone, including when the cell is empty;
-  plotted-shape sounds are layered on top. Double-tapping plots the selected
-  shape. Touch cells have no spoken coordinate or shape label, and Robin waits
-  briefly for VoiceOver's native **button** announcement to finish before
-  playing the cell audio.
+- On iOS, VoiceOver controls are an explicit mode, separate from Robin's
+  ordinary direct-touch gestures. Activating **Turn on VoiceOver controls**
+  once unlocks web audio and exposes a minimal **Cell** name on every native
+  cell button. Moving VoiceOver focus to a cell then plays its position tone,
+  including when the cell is empty; plotted-shape sounds are layered on top.
+  Double-tapping plots the selected shape exactly once. Robin waits 1.8 seconds
+  for VoiceOver's **Cell, button** announcement to finish before playing cell,
+  plot, and delete audio.
 - The map overview is available from the **Explain the map** disclosure on
   touch devices instead of being repeated whenever a cell is selected.
-- Deleting and the four map sweeps are provided as labelled focused-cell
-  controls. Web content cannot create UIKit `UIAccessibilityCustomAction`
-  entries in VoiceOver's Actions rotor, so these native HTML controls provide
-  the interoperable browser equivalent.
+- Shape selection, plotting, deleting, and the four map sweeps are exposed as
+  native labelled controls in the **VoiceOver cell actions** disclosure above
+  the grid while VoiceOver mode is on. Web content cannot create UIKit
+  `UIAccessibilityCustomAction` entries in VoiceOver's Actions rotor, so these
+  controls provide the interoperable browser equivalent while preserving the
+  focused grid coordinates.
 - Changes are reported through a polite live status region.
 - Desktop actions are keyboard-accessible. The touch interface provides shape,
   plotting, erasing, and playback controls, but no directional pad or keyboard
@@ -134,16 +139,18 @@ On iOS and other touch devices:
 - With VoiceOver off, the first tap starts Robin audio and plays that cell when
   the finger lifts, without changing it. Keeping one finger down and dragging
   then plays each crossed cell; double-tapping a cell plots the selected shape.
-- With VoiceOver on, move focus by touching or swiping to a map cell to hear
-  its position tone. If iOS has not started web audio yet, the first cell
-  activation starts it and plots the selected shape. Robin briefly delays the
-  tone after focus so VoiceOver can finish saying "button" first. Every
-  VoiceOver double-tap plots the selected shape. An empty cell plays the
-  position tone by itself, while plotted cells layer their shape sounds over
-  it.
+- With VoiceOver on, first activate **Turn on VoiceOver controls** once. This
+  starts audio without changing the map. Then move focus by touching or swiping
+  to a map cell to hear its position tone without a double-tap. Robin waits 1.8
+  seconds so the tone follows VoiceOver's short **Cell, button** announcement.
+  A VoiceOver double-tap is used only to plot the always-active shape. An empty
+  cell plays the position tone by itself, while plotted cells layer their shape
+  sounds over it. VoiceOver's standard three-finger swipe scrolls the page;
+  Robin's direct-touch gesture interception is disabled in this mode.
 - The four directional buttons are intentionally omitted; movement happens
   directly on the grid.
-- Choose a shape from the native shape menu.
+- Circle is selected by default and one shape is always active. Choose another
+  shape from the native shape menu whenever needed.
 - Use **Plot shape** as an alternative plotting control or **Delete focused
   point** to erase the most recently plotted shape at the focused coordinates.
 - Use **Play focused row**, **Play focused column**, **Sweep left to right**, or
