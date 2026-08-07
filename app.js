@@ -12,6 +12,14 @@ const TOUCH_CELL_TONE_VOLUME = 0.42;
 const DIRECT_DOUBLE_TAP_MS = 450;
 const PHYSICAL_POINTER_CLICK_MS = 900;
 const VOICEOVER_CELL_TONE_DELAY_MS = 1800;
+const VOICEOVER_ROTOR_ACTION_IDS = [
+  "voiceover-action-delete",
+  "voiceover-action-play-row",
+  "voiceover-action-play-column",
+  "voiceover-action-sweep-columns",
+  "voiceover-action-sweep-rows",
+];
+const VOICEOVER_ROTOR_ACTIONS = VOICEOVER_ROTOR_ACTION_IDS.join(" ");
 const VALID_SHAPES = ["square", "circle", "triangle", "diamond"];
 const SHAPE_SYMBOLS = {
   square: "□",
@@ -149,7 +157,7 @@ function setVoiceOverMode(enabled, options = {}) {
   lastDirectTapAt = 0;
   syncVoiceOverMode();
   configureGridAccessibility();
-  updateTouchCellLabels();
+  updateTouchCellAccessibility();
 
   if (voiceOverMode && unlockAudio) {
     // iOS requires a real activation before a webpage may start Web Audio.
@@ -298,7 +306,7 @@ function renderGrid(options = {}) {
         cell.setAttribute("role", "gridcell");
         cell.setAttribute("aria-colindex", String(x - GRID_MIN + 1));
       }
-      cell.setAttribute("aria-label", cellLabel(x, y, shapes));
+      setCellAccessibility(cell, x, y, shapes);
       if (current) {
         cell.classList.add("is-current");
         if (!touchGrid) cell.setAttribute("aria-current", "true");
@@ -365,13 +373,26 @@ function cellLabel(x, y, shapes) {
   return contents ? `x ${x}, y ${y}, ${contents}` : `x ${x}, y ${y}`;
 }
 
-function updateTouchCellLabels() {
+function setCellAccessibility(cell, x, y, shapes) {
+  cell.setAttribute("aria-label", cellLabel(x, y, shapes));
+  if (isTouchInterface() && isVoiceOverMode()) {
+    // aria-actions is a progressive enhancement. WebKit versions that support
+    // it expose these existing buttons as UIAccessibilityCustomAction entries
+    // in VoiceOver's Actions rotor. Other browsers ignore the relationship and
+    // retain the always-visible button panel as the complete fallback.
+    cell.setAttribute("aria-actions", VOICEOVER_ROTOR_ACTIONS);
+  } else {
+    cell.removeAttribute("aria-actions");
+  }
+}
+
+function updateTouchCellAccessibility() {
   if (!isTouchInterface()) return;
   grid.querySelectorAll(".grid-cell").forEach((cell) => {
     const x = Number(cell.dataset.x);
     const y = Number(cell.dataset.y);
     const shapes = gridCells.get(pointKey(x, y)) || [];
-    cell.setAttribute("aria-label", cellLabel(x, y, shapes));
+    setCellAccessibility(cell, x, y, shapes);
   });
 }
 
@@ -696,7 +717,7 @@ function updateRenderedCell(x, y) {
   const cell = grid.querySelector(`[data-x="${x}"][data-y="${y}"]`);
   if (!cell) return;
   const shapes = gridCells.get(pointKey(x, y)) || [];
-  cell.setAttribute("aria-label", cellLabel(x, y, shapes));
+  setCellAccessibility(cell, x, y, shapes);
   renderCellShapes(cell, shapes);
 }
 

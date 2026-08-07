@@ -72,10 +72,12 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
   native labelled controls in the always-expanded **VoiceOver cell actions**
   panel above the grid while VoiceOver mode is on. Moving focus to an action
   turns that button blue and updates the visible **Selected action** text;
-  double-tapping runs it. Web content cannot create UIKit
-  `UIAccessibilityCustomAction` entries in VoiceOver's Actions rotor, so these
-  controls provide the interoperable browser equivalent while preserving the
-  focused grid coordinates.
+  double-tapping runs it.
+- Each touch grid cell also uses the experimental `aria-actions` relationship
+  to expose Delete, Play row, Play column, Sweep left to right, and Sweep bottom
+  to top as custom actions. Supporting WebKit versions map those existing
+  buttons into VoiceOver's Actions rotor. Older browsers ignore the attribute,
+  so the complete visible action panel remains the reliable fallback.
 - Changes are reported through a polite live status region.
 - Desktop actions are keyboard-accessible. The touch interface provides shape,
   plotting, erasing, and playback controls, but no directional pad or keyboard
@@ -149,6 +151,15 @@ On iOS and other touch devices:
   cell plays the position tone by itself, while plotted cells layer their shape
   sounds over it. VoiceOver's standard three-finger swipe scrolls the page;
   Robin's direct-touch gesture interception is disabled in this mode.
+- On Safari versions supporting `aria-actions`, leave VoiceOver focus on the
+  target grid cell. Rotate two fingers until VoiceOver announces **Actions**,
+  then swipe up or down with one finger to choose one of these commands:
+  **Delete**, **Play row**, **Play column**, **Sweep left to right**, or **Sweep
+  bottom to top**. Double-tap to perform the announced command. The focused
+  cell stays selected while the referenced visible button runs the same action.
+- Plotting remains the cell's normal VoiceOver double-tap rather than a rotor
+  action. Drawing a line is not exposed because Robin does not yet have a line
+  drawing operation.
 - The four directional buttons are intentionally omitted; movement happens
   directly on the grid.
 - Circle is selected by default and one shape is always active. Choose another
