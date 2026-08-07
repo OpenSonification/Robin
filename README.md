@@ -31,9 +31,10 @@ The browser version uses the Web Audio API. On touch devices, activate
 browser audio restrictions. Headphones make the left-to-right panning easiest
 to hear.
 
-The map saves automatically in that browser's local storage. Use **Save JSON**
-to download a portable project file, **Open JSON** to load one, or **Clear map**
-to start again. The JSON format is compatible with the desktop version.
+Every page load starts from Robin's two-point example; the website does not
+restore or autosave browser state. Use **Save JSON** before leaving to download
+a portable project file, **Open JSON** to load one during a session, or **Clear
+map** to start again. The JSON format is compatible with the desktop version.
 
 ### Browser accessibility
 
@@ -124,11 +125,10 @@ create a named project.
 
 On iOS and other touch devices:
 
-- A new browser starts with a square at x -2, y -2 and a circle at x 2, y 2,
-  giving users two visible and audible example points to explore. An empty map
-  saved before this feature was introduced receives the examples once. Maps
-  containing user points are never replaced, and maps cleared afterwards stay
-  empty.
+- Every page load starts with a square at x -2, y -2 and a circle at x 2, y 2,
+  giving users two visible and audible example points to explore. Website
+  changes last for the current session only unless the user chooses **Save
+  JSON**.
 - Activate **Start Robin audio** once, then move VoiceOver focus by touching or
   swiping to a map cell to hear its position tone. An empty cell plays the tone
   by itself, while plotted cells layer their shape sounds over it.
