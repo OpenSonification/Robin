@@ -69,21 +69,29 @@ not yet consistent, touchscreen visitors see an accessibility notice
 recommending the desktop browser or standalone desktop version. The notice
 links to the current standalone Robin 0.2 folder. Both the desktop and touch
 interfaces begin with an obvious **Download README** link. It is the first
-focusable element in the document and receives focus when the page opens.
+focusable element in the document, appears directly below the **Robin** title,
+and receives focus when the page opens. **Skip to the sound grid** and
+**Settings** follow it as ordinary, labelled controls so they are available in
+normal VoiceOver navigation before the map.
 
-The map is a semantic HTML grid rather than a drawing-only canvas:
+The map uses semantic HTML controls rather than a drawing-only canvas:
 
-- The page opens with focus on **Download README**. The sound grid remains
-  available through the following skip link, and pressing an arrow key also
-  moves focus into the grid.
+- The page opens with focus on **Download README**, followed by **Skip to the
+  sound grid** and **Settings**. The skip link moves directly to the map; the
+  **About Robin** explanation and **How to use it** instructions follow it in
+  the document's reading order.
 - Arrow keys also return focus to the grid after any on-screen control is
   selected.
 - Only the current cell is in the normal tab order, so all 121 cells do not
   create a long tab sequence.
 - While the desktop grid has focus, Tab and Shift+Tab jump between plotted
-  points. Escape releases the grid so Tab can return to ordinary page controls.
-- On desktop, a screen reader announces each cell's x and y coordinates
-  followed by any plotted shapes. Empty cells announce only their coordinates.
+  points. Escape releases the grid and moves screen-reader focus to the About
+  Robin explanation.
+- On desktop, the map is one labelled group of native cell buttons rather than
+  an ARIA table. A screen reader announces each cell's x and y coordinates
+  followed by any plotted shapes, while VoiceOver's Control-Option navigation
+  no longer adds repeated "row N of 11" announcements. Empty cells announce
+  only their coordinates.
 - On iOS, VoiceOver controls are an explicit mode, separate from Robin's
   ordinary direct-touch gestures. Activating **Turn on VoiceOver controls**
   once unlocks web audio and exposes a minimal **Cell** name on every native
@@ -159,8 +167,8 @@ starts.
 | `Command+N` / `Ctrl+N`   | Start a new empty map                             |
 | `Command+I` / `Ctrl+I`   | Import CSV data                                   |
 | `Command+Z` / `Ctrl+Z`   | Undo one of the last 20 edits                     |
-| `Command+,` / `Ctrl+,`   | Open settings                                     |
-| `Escape`                 | Release grid focus for ordinary page navigation   |
+| `Control+,`              | Open Robin settings                               |
+| `Escape`                 | Move from the grid to the About Robin explanation |
 
 The on-screen Previous point, Next point, Centre, Undo, Settings, and file
 buttons provide alternatives to the shortcuts.
@@ -219,8 +227,18 @@ The sound for a plotted shape changes pitch with its row and pans with its
 column. Multiple shapes can be layered on the same cell. Repeated instances of
 the same shape are stored and drawn separately but sound once, preventing an
 accidental volume increase. The highest plotted row is slightly pitch-trimmed
-to keep its shape sounds comfortable. A Web Audio limiter protects playback
-when several cells or shapes sound together.
+to keep its shape sounds comfortable.
+
+The browser renders these sounds from a direct JavaScript port of the waveform
+formulas in the standalone Robin 0.2 `audio.py` master. It retains the original
+frequencies, note sequences, envelopes, harmonics, circle chorus, chord layers
+and echoes, gaps, tremolo, panning, levels, system cues, and connected-line
+sounds. The rendered samples use the same 16-bit PCM quantisation before being
+passed to Web Audio for playback without an extra dynamics compressor; Robin
+0.2's original peak normalisation is used instead. If optional vertical
+elevation is enabled, the browser applies its native HRTF to those master
+waveforms because the desktop version's Slab KEMAR engine is not available in
+a web page.
 
 When **Smooth connected points** is enabled in Settings, adjoining points of
 the same shape play as one sustained sound during row, column, and sweep

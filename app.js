@@ -9,14 +9,9 @@ const {
   pointKey,
   projectToCsv,
 } = RobinCore;
+const OriginalAudio = RobinAudio;
 const GRID_COUNT = 11;
-const ROOT_FREQUENCY = 130.81;
-const TOP_TRIM = 0.97;
-const CENTRE_SEMITONES = 12;
-const PENTATONIC_STEPS = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
 const CELL_TONE_DURATION = 0.22;
-const DESKTOP_CELL_TONE_VOLUME = 0.3;
-const TOUCH_CELL_TONE_VOLUME = 0.42;
 const MOVE_BLEND_MS = 160;
 const UNDO_LIMIT = 20;
 const SETTINGS_STORAGE_KEY = "robin-settings-v1";
@@ -597,14 +592,19 @@ function configureGridAccessibility() {
     grid.removeAttribute("aria-keyshortcuts");
     gridHelp.hidden = true;
   } else {
-    grid.setAttribute("role", "grid");
+    // Desktop Robin uses plain arrow keys for its own map navigation. Exposing
+    // each visual row as an ARIA row caused VoiceOver's Control-Option arrows
+    // to announce "row N of 11" without playing a Robin sound. One labelled
+    // group containing native cell buttons retains every coordinate and shape
+    // name without adding that unrelated table-navigation commentary.
+    grid.setAttribute("role", "group");
     grid.setAttribute("aria-label", "Robin sound grid");
     grid.setAttribute("aria-describedby", "grid-help");
-    grid.setAttribute("aria-rowcount", String(GRID_COUNT));
-    grid.setAttribute("aria-colcount", String(GRID_COUNT));
+    grid.removeAttribute("aria-rowcount");
+    grid.removeAttribute("aria-colcount");
     grid.setAttribute(
       "aria-keyshortcuts",
-      "ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace Tab Shift+Tab 0 S C T D 1 2 3 4 Space Control+A Meta+A Control+Z Meta+Z Control+I Meta+I Control+, Meta+,",
+      "ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace Tab Shift+Tab 0 S C T D 1 2 3 4 Space Control+A Meta+A Control+Z Meta+Z Control+I Meta+I Control+,",
     );
     gridHelp.hidden = false;
   }
@@ -618,10 +618,6 @@ function renderGrid(options = {}) {
   for (let y = GRID_MAX; y >= GRID_MIN; y -= 1) {
     const row = document.createElement("div");
     row.className = "grid-row";
-    if (!touchGrid) {
-      row.setAttribute("role", "row");
-      row.setAttribute("aria-rowindex", String(GRID_MAX - y + 1));
-    }
 
     for (let x = GRID_MIN; x <= GRID_MAX; x += 1) {
       const shapes = gridCells.get(pointKey(x, y)) || [];
@@ -632,10 +628,6 @@ function renderGrid(options = {}) {
       cell.dataset.x = x;
       cell.dataset.y = y;
       cell.tabIndex = touchGrid || current ? 0 : -1;
-      if (!touchGrid) {
-        cell.setAttribute("role", "gridcell");
-        cell.setAttribute("aria-colindex", String(x - GRID_MIN + 1));
-      }
       setCellAccessibility(cell, x, y, shapes);
       if (current) {
         cell.classList.add("is-current");
@@ -1588,7 +1580,12 @@ function handleKeyDown(event) {
     selectAllPoints();
     return;
   }
-  if (commandDown && event.key === ",") {
+  if (
+    event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey &&
+    event.key === ","
+  ) {
     event.preventDefault();
     openSettings();
     return;
@@ -1602,6 +1599,11 @@ function handleKeyDown(event) {
   };
   const inGrid =
     event.target instanceof Element && event.target.closest("#sound-grid");
+
+  // Control-Option is VoiceOver's own navigation chord on macOS. Robin must
+  // leave it untouched; the group/button accessibility model above lets
+  // VoiceOver move without announcing artificial row numbers.
+  if (event.ctrlKey && event.altKey && directions[event.key]) return;
 
   if (directions[event.key]) {
     event.preventDefault();
@@ -1645,10 +1647,10 @@ function handleKeyDown(event) {
     toggleBlackout();
   } else if (event.key === "Escape" && inGrid) {
     event.preventDefault();
-    document.querySelector(".instructions [data-settings-open]")?.focus();
+    document.querySelector("#about-robin-title")?.focus();
     setStatus(
       "Map focus released.",
-      "Use Tab to move through the page controls.",
+      "About Robin and the instructions now follow.",
     );
   }
 }
@@ -1674,71 +1676,6 @@ function shapeForKey(key) {
   }[key.toLowerCase()];
 }
 
-function axisPitchSemitones(position) {
-  return (
-    (PENTATONIC_STEPS[position - GRID_MIN] - CENTRE_SEMITONES) *
-    settings.pitchRangeScale
-  );
-}
-
-function combinedSemitones(x, y) {
-  let semitones = 0;
-  if (settings.leftRight.pitchStyle === "pentatonic") {
-    semitones += axisPitchSemitones(x);
-  }
-  if (settings.upDown.pitchStyle === "pentatonic") {
-    semitones += axisPitchSemitones(y);
-  }
-  return semitones;
-}
-
-function positionFrequency(x, y) {
-  return (
-    ROOT_FREQUENCY * 2 ** ((CENTRE_SEMITONES + combinedSemitones(x, y)) / 12)
-  );
-}
-
-function positionPitchRatio(x, y) {
-  const trim = y === GRID_MAX ? TOP_TRIM : 1;
-  return 2 ** (combinedSemitones(x, y) / 12) * trim;
-}
-
-function runPitchRatio(y) {
-  const trim = y === GRID_MAX ? TOP_TRIM : 1;
-  return 2 ** (axisPitchSemitones(y) / 12) * trim;
-}
-
-function chordAxisValue(x, y) {
-  if (settings.leftRight.pitchStyle === "chord") return x;
-  if (settings.upDown.pitchStyle === "chord") return y;
-  return null;
-}
-
-function chordFrequencies(value) {
-  const root =
-    ROOT_FREQUENCY * 2 ** ((CENTRE_SEMITONES + axisPitchSemitones(value)) / 12);
-  return [0, 7, 14, 19].map((interval) => root * 2 ** (interval / 12));
-}
-
-function axisAmount(position, direction) {
-  const normalised = (position - GRID_MIN) / (GRID_MAX - GRID_MIN);
-  return direction === "reverse" ? 1 - normalised : normalised;
-}
-
-function positionTremoloAmount(x, y) {
-  if (settings.leftRight.timbre !== "none") {
-    return axisAmount(x, settings.leftRight.timbre);
-  }
-  if (settings.upDown.timbre !== "none") {
-    return axisAmount(y, settings.upDown.timbre);
-  }
-  return 0;
-}
-
-function columnPan(x) {
-  return x / GRID_MAX;
-}
-
 function ensureAudio() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) {
@@ -1751,14 +1688,13 @@ function ensureAudio() {
   if (!audioContext || audioContext.state === "closed") {
     const createdAudio = new AudioContext();
     audioContext = createdAudio;
-    const limiter = createdAudio.createDynamicsCompressor();
-    limiter.threshold.value = -8;
-    limiter.knee.value = 2;
-    limiter.ratio.value = 20;
-    limiter.attack.value = 0.002;
-    limiter.release.value = 0.12;
-    limiter.connect(createdAudio.destination);
-    masterOutput = limiter;
+    // The master implementation normalises only when a rendered waveform
+    // peaks above 0.85. A Web Audio compressor would change its envelopes and
+    // transients, so this node deliberately has unity gain and no processing.
+    const output = createdAudio.createGain();
+    output.gain.value = 1;
+    output.connect(createdAudio.destination);
+    masterOutput = output;
     createdAudio.addEventListener("statechange", () => {
       // Some WebKit versions report the running state just after resume()'s
       // promise settles. The state event is the authoritative point at which
@@ -1846,290 +1782,220 @@ function recoverInterruptedAudio() {
   }
 }
 
-function createPannedOutput(x, audio, y = 0, gainScale = 1) {
-  const output = audio.createGain();
-  output.gain.value = 0.72 * gainScale;
-  const destination = masterOutput || audio.destination;
-
-  if (settings.upDown.elevation && typeof audio.createPanner === "function") {
-    const panner = audio.createPanner();
-    panner.panningModel = "HRTF";
-    panner.distanceModel = "inverse";
-    panner.refDistance = 1;
-    panner.maxDistance = 10;
-    panner.rolloffFactor = 0;
-    const horizontal = settings.leftRight.pan ? columnPan(x) : 0;
-    const vertical = y / GRID_MAX;
-    if (panner.positionX) {
-      panner.positionX.value = horizontal;
-      panner.positionY.value = vertical;
-      panner.positionZ.value = -1;
-    } else {
-      panner.setPosition(horizontal, vertical, -1);
+function createMasterBuffer(audio, channels) {
+  if (!channels.length || !channels[0]?.length) return null;
+  const buffer = audio.createBuffer(
+    channels.length,
+    channels[0].length,
+    OriginalAudio.SAMPLE_RATE,
+  );
+  channels.forEach((channel, index) => {
+    const output = buffer.getChannelData(index);
+    for (let sample = 0; sample < channel.length; sample += 1) {
+      // Pygame receives int16 samples from the master. Quantising before Web
+      // Audio playback keeps the browser buffer on that same PCM sample grid.
+      output[sample] = Math.trunc(channel[sample] * 32767) / 32768;
     }
-    output.connect(panner);
-    panner.connect(destination);
-  } else if (
-    settings.leftRight.pan &&
-    typeof audio.createStereoPanner === "function"
-  ) {
-    const panner = audio.createStereoPanner();
-    panner.pan.value = columnPan(x);
-    output.connect(panner);
-    panner.connect(destination);
-  } else {
-    output.connect(destination);
-  }
+  });
+  return buffer;
+}
+
+function scheduleMasterBuffer(audio, channels, start, track = false) {
+  const buffer = createMasterBuffer(audio, channels);
+  if (!buffer) return null;
+  const source = audio.createBufferSource();
+  const output = audio.createGain();
+  source.buffer = buffer;
+  output.gain.value = 1;
+  source.connect(output);
+  output.connect(masterOutput || audio.destination);
+  if (track) activePlaybackSources.add(source);
+  source.addEventListener("ended", () => {
+    if (track) activePlaybackSources.delete(source);
+    source.disconnect();
+  });
+  source.start(start);
   return output;
 }
 
-function scheduleTone(
-  output,
-  frequency,
-  start,
-  duration,
-  volume,
-  options = {},
-) {
-  if (!output) return;
-  const audio = output.context;
-  const {
-    attack = 0.015,
-    release = Math.min(duration * 0.45, 0.12),
-    tremoloAmount = 0,
-  } = options;
-  const oscillator = audio.createOscillator();
-  const gain = audio.createGain();
-  const tremoloGain = audio.createGain();
-  const end = start + duration;
-  const attackEnd = Math.min(end, start + attack);
-  const releaseStart = Math.max(attackEnd, end - release);
-
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(frequency, start);
-  gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(Math.max(volume, 0.0002), attackEnd);
-  gain.gain.setValueAtTime(Math.max(volume, 0.0002), releaseStart);
-  gain.gain.exponentialRampToValueAtTime(0.0001, end);
-  oscillator.connect(gain);
-  gain.connect(tremoloGain);
-  tremoloGain.connect(output);
-  tremoloGain.gain.value = 1;
-  if (tremoloAmount > 0) {
-    const lfo = audio.createOscillator();
-    const lfoDepth = audio.createGain();
-    const depth = Math.max(0, Math.min(1, tremoloAmount));
-    lfo.frequency.value = 3 + depth * 9;
-    lfoDepth.gain.value = depth * 0.45;
-    tremoloGain.gain.value = 1 - depth * 0.45;
-    lfo.connect(lfoDepth);
-    lfoDepth.connect(tremoloGain.gain);
-    lfo.start(start);
-    lfo.stop(end + 0.02);
-  }
-  oscillator.start(start);
-  oscillator.stop(end + 0.02);
-}
-
-function scheduleHarmonicTone(
-  output,
-  frequency,
-  start,
-  duration,
-  volume,
-  options = {},
-) {
-  scheduleTone(output, frequency, start, duration, volume, options);
-  scheduleTone(output, frequency * 2, start, duration, volume * 0.3, options);
-  scheduleTone(output, frequency * 3, start, duration, volume * 0.15, options);
-}
-
-function scheduleOutputTremolo(output, start, duration, amount) {
-  if (!output || amount <= 0) return;
-  const audio = output.context;
-  const depth = Math.max(0, Math.min(1, amount));
-  const baseGain = output.gain.value;
-  const lfo = audio.createOscillator();
-  const lfoDepth = audio.createGain();
-  lfo.frequency.value = 3 + depth * 9;
-  lfoDepth.gain.value = baseGain * depth * 0.45;
-  output.gain.value = baseGain * (1 - depth * 0.45);
-  lfo.connect(lfoDepth);
-  lfoDepth.connect(output.gain);
-  lfo.start(start);
-  lfo.stop(start + duration + 0.02);
-}
-
-function scheduleClick(output, start) {
-  if (!output) return;
-  const audio = output.context;
-  const length = Math.floor(audio.sampleRate * 0.018);
-  const buffer = audio.createBuffer(1, length, audio.sampleRate);
-  const channel = buffer.getChannelData(0);
-  for (let index = 0; index < length; index += 1) {
-    channel[index] = (Math.random() * 2 - 1) * (1 - index / length);
-  }
+function scheduleMasterHrtf(audio, wave, x, y, start, track = false) {
+  const shaped = OriginalAudio.normaliseMono(
+    OriginalAudio.applyTimbre(wave, x, y, settings),
+  );
+  const buffer = createMasterBuffer(audio, [shaped]);
+  if (!buffer) return null;
   const source = audio.createBufferSource();
-  const gain = audio.createGain();
+  const output = audio.createGain();
+  const panner = audio.createPanner();
+  const horizontal = settings.leftRight.pan ? x / GRID_MAX : 0;
+  const vertical = y / GRID_MAX;
   source.buffer = buffer;
-  gain.gain.value = 0.09 * settings.systemVolume;
-  source.connect(gain);
-  gain.connect(output);
+  output.gain.value = 1;
+  panner.panningModel = "HRTF";
+  panner.distanceModel = "inverse";
+  panner.refDistance = 1;
+  panner.maxDistance = 10;
+  panner.rolloffFactor = 0;
+  if (panner.positionX) {
+    panner.positionX.value = horizontal;
+    panner.positionY.value = vertical;
+    panner.positionZ.value = -1;
+  } else {
+    panner.setPosition(horizontal, vertical, -1);
+  }
+  source.connect(output);
+  output.connect(panner);
+  panner.connect(masterOutput || audio.destination);
+  if (track) activePlaybackSources.add(source);
+  source.addEventListener("ended", () => {
+    if (track) activePlaybackSources.delete(source);
+    source.disconnect();
+  });
   source.start(start);
+  return output;
+}
+
+function scheduleMasterSpatial(audio, wave, x, y, start, track = false) {
+  if (!wave.length) return null;
+  if (settings.upDown.elevation && typeof audio.createPanner === "function") {
+    return scheduleMasterHrtf(audio, wave, x, y, start, track);
+  }
+  return scheduleMasterBuffer(
+    audio,
+    OriginalAudio.spatialiseWithoutElevation(wave, x, y, settings),
+    start,
+    track,
+  );
+}
+
+function scheduleMasterPath(audio, wave, points, start) {
+  if (!wave.length || !points.length) return null;
+  if (!settings.upDown.elevation || typeof audio.createPanner !== "function") {
+    return scheduleMasterBuffer(
+      audio,
+      OriginalAudio.spatialisePathWithoutElevation(wave, points, settings),
+      start,
+      true,
+    );
+  }
+
+  const shaped = OriginalAudio.normaliseMono(
+    OriginalAudio.applyTimbrePath(wave, points, settings),
+  );
+  const buffer = createMasterBuffer(audio, [shaped]);
+  if (!buffer) return null;
+  const source = audio.createBufferSource();
+  const output = audio.createGain();
+  const panner = audio.createPanner();
+  const duration = shaped.length / OriginalAudio.SAMPLE_RATE;
+  source.buffer = buffer;
+  output.gain.value = 1;
+  panner.panningModel = "HRTF";
+  panner.distanceModel = "inverse";
+  panner.refDistance = 1;
+  panner.maxDistance = 10;
+  panner.rolloffFactor = 0;
+  points.forEach(([x, y], index) => {
+    const time = start + (duration * index) / Math.max(1, points.length - 1);
+    const horizontal = settings.leftRight.pan ? x / GRID_MAX : 0;
+    const method = index === 0 ? "setValueAtTime" : "linearRampToValueAtTime";
+    if (panner.positionX) {
+      panner.positionX[method](horizontal, time);
+      panner.positionY[method](y / GRID_MAX, time);
+      panner.positionZ[method](-1, time);
+    } else if (index === 0) {
+      panner.setPosition(horizontal, y / GRID_MAX, -1);
+    }
+  });
+  source.connect(output);
+  output.connect(panner);
+  panner.connect(masterOutput || audio.destination);
+  activePlaybackSources.add(source);
+  source.addEventListener("ended", () => {
+    activePlaybackSources.delete(source);
+    source.disconnect();
+  });
+  source.start(start);
+  return output;
+}
+
+function scaleStereo(stereo, amount) {
+  return stereo.map((channel) => OriginalAudio.scaleWave(channel, amount));
+}
+
+function mixStereo(first, second) {
+  return [
+    OriginalAudio.mixWaves(first[0], second[0]),
+    OriginalAudio.mixWaves(first[1], second[1]),
+  ];
+}
+
+function centredSystemStereo(wave) {
+  return OriginalAudio.normaliseStereo(
+    scaleStereo(OriginalAudio.panWave(wave, 0), settings.systemVolume),
+  );
 }
 
 function playBin(x, audioDelayMs = 0) {
   withRunningAudio((audio) => {
-    const output = createPannedOutput(x, audio, cursorY);
     const start = audio.currentTime + Math.max(0.01, audioDelayMs / 1000);
-    scheduleTone(output, 90, start, 0.09, 0.28 * settings.systemVolume, {
-      attack: 0.003,
-      release: 0.055,
-    });
-
-    const length = Math.floor(audio.sampleRate * 0.05);
-    const buffer = audio.createBuffer(1, length, audio.sampleRate);
-    const channel = buffer.getChannelData(0);
-    for (let index = 0; index < length; index += 1) {
-      channel[index] = (Math.random() * 2 - 1) * (1 - index / length);
-    }
-    const source = audio.createBufferSource();
-    const gain = audio.createGain();
-    source.buffer = buffer;
-    gain.gain.value = 0.12 * settings.systemVolume;
-    source.connect(gain);
-    gain.connect(output);
-    source.start(start + 0.1);
+    const stereo = OriginalAudio.normaliseStereo(
+      scaleStereo(
+        OriginalAudio.panWave(OriginalAudio.binSound(), x / GRID_MAX),
+        settings.systemVolume,
+      ),
+    );
+    scheduleMasterBuffer(audio, stereo, start);
   });
 }
 
 function playEdge(x, y) {
   withRunningAudio((audio) => {
-    const output = createPannedOutput(x, audio, y);
     const start = audio.currentTime + 0.01;
-    scheduleTone(output, 220, start, 0.05, 0.3 * settings.systemVolume, {
-      attack: 0.005,
-      release: 0.03,
-    });
-    scheduleTone(output, 170, start + 0.07, 0.06, 0.3 * settings.systemVolume, {
-      attack: 0.005,
-      release: 0.04,
-    });
+    const wave = OriginalAudio.scaleWave(
+      OriginalAudio.edgeSound(),
+      settings.systemVolume,
+    );
+    scheduleMasterSpatial(audio, wave, x, y, start);
   });
 }
 
 function playCentre() {
   withRunningAudio((audio) => {
-    const output = createPannedOutput(0, audio, 0);
-    const start = audio.currentTime + 0.01;
-    scheduleTone(
-      output,
-      ROOT_FREQUENCY * 2,
-      start,
-      0.14,
-      0.4 * settings.systemVolume,
-      {
-        attack: 0.008,
-        release: 0.09,
-      },
-    );
-    scheduleTone(
-      output,
-      ROOT_FREQUENCY * 4,
-      start,
-      0.05,
-      0.11 * settings.systemVolume,
-      {
-        attack: 0.003,
-        release: 0.035,
-      },
+    scheduleMasterBuffer(
+      audio,
+      centredSystemStereo(OriginalAudio.centrePing()),
+      audio.currentTime + 0.01,
     );
   });
 }
 
 function playConfirm(major) {
   withRunningAudio((audio) => {
-    const output = createPannedOutput(0, audio, 0);
-    const intervals = major ? [0, 4, 7, 12] : [12, 7, 3, 0];
-    const start = audio.currentTime + 0.01;
-    intervals.forEach((interval, index) => {
-      const frequency = ROOT_FREQUENCY * 3 * 2 ** (interval / 12);
-      scheduleTone(
-        output,
-        frequency,
-        start + index * 0.062,
-        0.05,
-        0.15 * settings.systemVolume,
-        { attack: 0.003, release: 0.035 },
-      );
-    });
+    scheduleMasterBuffer(
+      audio,
+      centredSystemStereo(OriginalAudio.confirmSparkle(major)),
+      audio.currentTime + 0.01,
+    );
   });
 }
 
 function playSelectAll() {
   withRunningAudio((audio) => {
-    const output = createPannedOutput(0, audio, 0);
-    const start = audio.currentTime + 0.01;
-    [0, 4, 7].forEach((interval, index) => {
-      scheduleTone(
-        output,
-        ROOT_FREQUENCY * 4 * 2 ** (interval / 12),
-        start + index * 0.08,
-        0.05,
-        0.15 * settings.systemVolume,
-        { attack: 0.003, release: 0.035 },
-      );
-    });
-    scheduleTone(
-      output,
-      ROOT_FREQUENCY * 8,
-      start + 0.16,
-      0.05,
-      0.09 * settings.systemVolume,
-      { attack: 0.003, release: 0.035 },
+    scheduleMasterBuffer(
+      audio,
+      centredSystemStereo(OriginalAudio.selectSparkle()),
+      audio.currentTime + 0.01,
     );
   });
 }
 
-function scheduleBounce(output, start) {
-  const audio = output.context;
-  const oscillator = audio.createOscillator();
-  const gain = audio.createGain();
-  const end = start + 0.04;
-  oscillator.frequency.setValueAtTime(300, start);
-  oscillator.frequency.exponentialRampToValueAtTime(700, end);
-  gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(
-    Math.max(0.0002, 0.18 * settings.systemVolume),
-    start + 0.006,
-  );
-  gain.gain.exponentialRampToValueAtTime(0.0001, end);
-  oscillator.connect(gain);
-  gain.connect(output);
-  oscillator.start(start);
-  oscillator.stop(end + 0.02);
-}
-
 function playToggleSound(turningOff) {
   withRunningAudio((audio) => {
-    const output = createPannedOutput(0, audio, 0);
-    const start = audio.currentTime + 0.01;
-    const first = turningOff ? 500 : 260;
-    const second = turningOff ? 260 : 500;
-    scheduleTone(output, first, start, 0.07, 0.24 * settings.systemVolume, {
-      attack: 0.003,
-      release: 0.04,
-    });
-    scheduleTone(
-      output,
-      second,
-      start + 0.08,
-      0.09,
-      0.24 * settings.systemVolume,
-      {
-        attack: 0.003,
-        release: 0.055,
-      },
+    scheduleMasterBuffer(
+      audio,
+      centredSystemStereo(OriginalAudio.toggleSound(turningOff)),
+      audio.currentTime + 0.01,
     );
   });
 }
@@ -2149,84 +2015,6 @@ function toggleBlackout() {
         ? "Tap the screen to restore it."
         : "Press Space or click the screen to restore it."
       : "",
-  );
-}
-
-function scheduleShape(output, shape, pitchRatio, start, volumeScale = 1) {
-  const volume = settings.pointsVolume * volumeScale;
-  if (shape === "square") {
-    scheduleHarmonicTone(output, 400 * pitchRatio, start, 0.05, 0.28 * volume);
-    scheduleHarmonicTone(
-      output,
-      400 * pitchRatio,
-      start + 0.07,
-      0.05,
-      0.28 * volume,
-    );
-  } else if (shape === "circle") {
-    scheduleTone(output, 600 * pitchRatio, start, 0.26, 0.25 * volume, {
-      attack: 0.065,
-      release: 0.13,
-    });
-  } else if (shape === "triangle") {
-    [500, 650, 800].forEach((frequency, index) => {
-      scheduleHarmonicTone(
-        output,
-        frequency * pitchRatio,
-        start + index * 0.06,
-        0.05,
-        0.24 * volume,
-      );
-    });
-  } else if (shape === "diamond") {
-    [1600, 2200, 1800, 2400].forEach((frequency, index) => {
-      scheduleTone(
-        output,
-        frequency * pitchRatio,
-        start + index * 0.065,
-        0.05,
-        0.16 * volume,
-        { attack: 0.003, release: 0.035 },
-      );
-      scheduleTone(
-        output,
-        frequency * pitchRatio * 2,
-        start + index * 0.065,
-        0.05,
-        0.035 * volume,
-        { attack: 0.003, release: 0.035 },
-      );
-    });
-  }
-}
-
-function schedulePosition(output, x, y, start, duration, volumeScale) {
-  const baseVolume =
-    (isTouchInterface() ? TOUCH_CELL_TONE_VOLUME : DESKTOP_CELL_TONE_VOLUME) *
-    settings.positionVolume *
-    volumeScale;
-  const chordValue = chordAxisValue(x, y);
-  if (chordValue !== null) {
-    const chordDuration = Math.max(duration, 1.4);
-    const weights = [0.45, 0.3, 0.2, 0.15];
-    chordFrequencies(chordValue).forEach((frequency, index) => {
-      scheduleTone(
-        output,
-        frequency,
-        start,
-        chordDuration,
-        baseVolume * weights[index],
-        { attack: 0.3, release: 0.7 },
-      );
-    });
-    return;
-  }
-  scheduleHarmonicTone(
-    output,
-    positionFrequency(x, y),
-    start,
-    duration,
-    baseVolume,
   );
 }
 
@@ -2259,177 +2047,139 @@ function scheduleCellAudio(
     volumeScale = 1,
     bounce = false,
   } = options;
-  const layerCount = (includePosition ? 1 : 0) + uniqueShapes(shapes).length;
-  const output = createPannedOutput(
-    x,
-    audio,
-    y,
-    1 / Math.sqrt(Math.max(1, layerCount * 0.7)),
-  );
   const start = audio.currentTime + Math.max(0.01, audioDelayMs / 1000);
-  scheduleOutputTremolo(
-    output,
-    start,
-    chordAxisValue(x, y) === null ? Math.max(duration, 0.3) : 1.4,
-    positionTremoloAmount(x, y),
-  );
-  if (includePosition)
-    schedulePosition(output, x, y, start, duration, volumeScale);
-  for (const shape of uniqueShapes(shapes)) {
-    scheduleShape(output, shape, positionPitchRatio(x, y), start, volumeScale);
-  }
-  if (drawing) scheduleClick(output, start);
-  if (bounce) scheduleBounce(output, start);
-  return output;
-}
-
-function playPlottedCell(x, y, selectedShapes = null, volumeScale = 1) {
-  const shapes = selectedShapes || gridCells.get(pointKey(x, y));
-  if (!shapes?.length) return;
-  withRunningAudio((audio) => {
-    const output = createPannedOutput(
-      x,
-      audio,
-      y,
-      1 / Math.sqrt(Math.max(1, uniqueShapes(shapes).length * 0.7)),
+  let base = new Float64Array(0);
+  if (includePosition) {
+    base = OriginalAudio.scaleWave(
+      OriginalAudio.positionWave(x, y, duration, 0.45, settings),
+      settings.positionVolume,
     );
-    const start = audio.currentTime + 0.01;
-    scheduleOutputTremolo(output, start, 0.3, positionTremoloAmount(x, y));
-    for (const shape of uniqueShapes(shapes)) {
-      scheduleShape(
-        output,
+  }
+  for (const shape of uniqueShapes(shapes)) {
+    const overlay = OriginalAudio.scaleWave(
+      OriginalAudio.shapeSound(
         shape,
-        positionPitchRatio(x, y),
-        start,
-        volumeScale,
+        OriginalAudio.positionPitchRatio(x, y, settings),
+      ),
+      settings.pointsVolume,
+    );
+    base = OriginalAudio.mixWaves(base, overlay);
+  }
+
+  if (settings.upDown.elevation && typeof audio.createPanner === "function") {
+    let mono = OriginalAudio.scaleWave(base, volumeScale);
+    if (drawing) {
+      mono = OriginalAudio.mixWaves(
+        mono,
+        OriginalAudio.scaleWave(
+          OriginalAudio.drawClick(),
+          settings.systemVolume,
+        ),
       );
     }
+    if (bounce) {
+      mono = OriginalAudio.mixWaves(
+        mono,
+        OriginalAudio.scaleWave(
+          OriginalAudio.bounceClick(),
+          settings.systemVolume,
+        ),
+      );
+    }
+    return scheduleMasterHrtf(audio, mono, x, y, start);
+  }
+
+  let stereo = scaleStereo(
+    OriginalAudio.spatialiseRawWithoutElevation(base, x, y, settings),
+    volumeScale,
+  );
+  if (drawing) {
+    stereo = mixStereo(
+      stereo,
+      scaleStereo(
+        OriginalAudio.spatialiseRawWithoutElevation(
+          OriginalAudio.drawClick(),
+          x,
+          y,
+          settings,
+        ),
+        settings.systemVolume,
+      ),
+    );
+  }
+  if (bounce) {
+    stereo = mixStereo(
+      stereo,
+      scaleStereo(
+        OriginalAudio.spatialiseRawWithoutElevation(
+          OriginalAudio.bounceClick(),
+          x,
+          y,
+          settings,
+        ),
+        settings.systemVolume,
+      ),
+    );
+  }
+  return scheduleMasterBuffer(
+    audio,
+    OriginalAudio.normaliseStereo(stereo),
+    start,
+  );
+}
+
+function playPlottedCells(entries, volumeScale = 1) {
+  if (!entries.length) return;
+  withRunningAudio((audio) => {
+    const start = audio.currentTime + 0.01;
+    if (settings.upDown.elevation && typeof audio.createPanner === "function") {
+      entries.forEach(([x, y, shape]) => {
+        const wave = OriginalAudio.scaleWave(
+          OriginalAudio.shapeSound(
+            shape,
+            OriginalAudio.positionPitchRatio(x, y, settings),
+          ),
+          settings.pointsVolume * volumeScale,
+        );
+        scheduleMasterSpatial(audio, wave, x, y, start);
+      });
+      return;
+    }
+
+    let combined = [new Float64Array(0), new Float64Array(0)];
+    entries.forEach(([x, y, shape]) => {
+      const wave = OriginalAudio.scaleWave(
+        OriginalAudio.shapeSound(
+          shape,
+          OriginalAudio.positionPitchRatio(x, y, settings),
+        ),
+        settings.pointsVolume,
+      );
+      combined = mixStereo(
+        combined,
+        OriginalAudio.spatialiseRawWithoutElevation(wave, x, y, settings),
+      );
+    });
+    scheduleMasterBuffer(
+      audio,
+      OriginalAudio.normaliseStereo(scaleStereo(combined, volumeScale)),
+      start,
+    );
   });
 }
 
 function speedVolumeScale(speedMs) {
-  return Math.max(0.5, Math.min(1, speedMs / 160));
+  return OriginalAudio.speedVolumeScale(speedMs);
 }
 
 function scheduleSmoothedPath(shape, points, duration, speedMs) {
   if (points.length < 2) return;
   withRunningAudio((audio) => {
-    const start = audio.currentTime + 0.01;
-    const end = start + duration;
-    const input = audio.createGain();
-    const envelope = audio.createGain();
-    const destination = masterOutput || audio.destination;
-    input.gain.value = speedVolumeScale(speedMs);
-    envelope.gain.setValueAtTime(0.0001, start);
-    envelope.gain.exponentialRampToValueAtTime(
-      Math.max(0.0002, 0.22 * settings.pointsVolume),
-      Math.min(end, start + 0.05),
+    const wave = OriginalAudio.scaleWave(
+      OriginalAudio.smoothedPathWave(shape, points, duration, settings),
+      speedVolumeScale(speedMs),
     );
-    envelope.gain.setValueAtTime(
-      Math.max(0.0002, 0.22 * settings.pointsVolume),
-      Math.max(start + 0.05, end - 0.12),
-    );
-    envelope.gain.exponentialRampToValueAtTime(0.0001, end);
-    input.connect(envelope);
-
-    let spatialNode = null;
-    if (settings.upDown.elevation && typeof audio.createPanner === "function") {
-      spatialNode = audio.createPanner();
-      spatialNode.panningModel = "HRTF";
-      spatialNode.distanceModel = "inverse";
-      spatialNode.rolloffFactor = 0;
-      envelope.connect(spatialNode);
-      spatialNode.connect(destination);
-    } else if (
-      settings.leftRight.pan &&
-      typeof audio.createStereoPanner === "function"
-    ) {
-      spatialNode = audio.createStereoPanner();
-      envelope.connect(spatialNode);
-      spatialNode.connect(destination);
-    } else {
-      envelope.connect(destination);
-    }
-
-    const oscillator = audio.createOscillator();
-    const tremoloGain = audio.createGain();
-    let tremoloOscillator = null;
-    let tremoloDepth = null;
-    const pathUsesTremolo =
-      settings.leftRight.timbre !== "none" || settings.upDown.timbre !== "none";
-    if (pathUsesTremolo) {
-      tremoloOscillator = audio.createOscillator();
-      tremoloDepth = audio.createGain();
-      tremoloOscillator.frequency.value = 9;
-      tremoloOscillator.connect(tremoloDepth);
-      tremoloDepth.connect(tremoloGain.gain);
-      tremoloOscillator.start(start);
-      tremoloOscillator.stop(end + 0.02);
-    } else {
-      tremoloGain.gain.value = 1;
-    }
-    const baseFrequencies = {
-      square: 420,
-      circle: 600,
-      triangle: 650,
-      diamond: 1900,
-    };
-    oscillator.type = {
-      square: "square",
-      circle: "sine",
-      triangle: "triangle",
-      diamond: "sine",
-    }[shape];
-    points.forEach(([x, y], index) => {
-      const time = start + (duration * index) / Math.max(1, points.length - 1);
-      const frequency = baseFrequencies[shape] * runPitchRatio(y);
-      if (index === 0) oscillator.frequency.setValueAtTime(frequency, time);
-      else oscillator.frequency.linearRampToValueAtTime(frequency, time);
-
-      if (pathUsesTremolo) {
-        const amount = positionTremoloAmount(x, y);
-        const method =
-          index === 0 ? "setValueAtTime" : "linearRampToValueAtTime";
-        tremoloGain.gain[method](1 - amount * 0.45, time);
-        tremoloDepth.gain[method](amount * 0.45, time);
-      }
-
-      if (spatialNode?.pan) {
-        const pan = settings.leftRight.pan ? columnPan(x) : 0;
-        if (index === 0) spatialNode.pan.setValueAtTime(pan, time);
-        else spatialNode.pan.linearRampToValueAtTime(pan, time);
-      } else if (spatialNode?.positionX) {
-        const horizontal = settings.leftRight.pan ? columnPan(x) : 0;
-        const vertical = y / GRID_MAX;
-        const method =
-          index === 0 ? "setValueAtTime" : "linearRampToValueAtTime";
-        spatialNode.positionX[method](horizontal, time);
-        spatialNode.positionY[method](vertical, time);
-        spatialNode.positionZ[method](-1, time);
-      } else if (
-        index === 0 &&
-        typeof spatialNode?.setPosition === "function"
-      ) {
-        spatialNode.setPosition(
-          settings.leftRight.pan ? columnPan(x) : 0,
-          y / GRID_MAX,
-          -1,
-        );
-      }
-    });
-    oscillator.connect(tremoloGain);
-    tremoloGain.connect(input);
-    oscillator.start(start);
-    oscillator.stop(end + 0.02);
-    activePlaybackSources.add(oscillator);
-    if (tremoloOscillator) activePlaybackSources.add(tremoloOscillator);
-    window.setTimeout(
-      () => {
-        activePlaybackSources.delete(oscillator);
-        if (tremoloOscillator) activePlaybackSources.delete(tremoloOscillator);
-      },
-      (duration + 0.1) * 1000,
-    );
+    scheduleMasterPath(audio, wave, points, audio.currentTime + 0.01);
   });
 }
 
@@ -2565,6 +2315,7 @@ async function playSweep(alongX, token) {
     if (alongX) cursorX = outer;
     else cursorY = outer;
     const clusters = new Map();
+    const plottedEntries = [];
 
     for (let inner = GRID_MIN; inner <= GRID_MAX; inner += 1) {
       const [x, y] = alongX ? [outer, inner] : [inner, outer];
@@ -2584,7 +2335,7 @@ async function playSweep(alongX, token) {
               );
             } else {
               group.points.forEach(([pointX, pointY]) => {
-                playPlottedCell(pointX, pointY, [shape], volumeScale);
+                plottedEntries.push([pointX, pointY, shape]);
               });
             }
           }
@@ -2597,8 +2348,9 @@ async function playSweep(alongX, token) {
     }
 
     clusters.forEach((points, shape) => {
-      points.forEach(([x, y]) => playPlottedCell(x, y, [shape], volumeScale));
+      points.forEach(([x, y]) => plottedEntries.push([x, y, shape]));
     });
+    playPlottedCells(plottedEntries, volumeScale);
     renderPlaybackCursor();
     await delay(speed);
   }

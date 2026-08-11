@@ -36,17 +36,33 @@
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
-    <script src="robin-core.js?v=20260811-robin-02" defer></script>
-    <script src="app.js?v=20260811-robin-02" defer></script>
+    <script src="robin-core.js?v=20260811-robin-03" defer></script>
+    <script src="robin-audio.js?v=20260811-robin-03" defer></script>
+    <script src="app.js?v=20260811-robin-03" defer></script>
   </head>
   <body>
-    <header class="top-resource-bar">
-      <a id="readme-download" href="README.md" download="Robin-README.md">
-        Download README
-      </a>
+    <header class="top-resource-bar" aria-labelledby="robin-title">
+      <h1 class="wordmark" id="robin-title">Robin</h1>
+      <nav class="top-actions" aria-label="Robin resources and controls">
+        <a
+          class="top-primary-action"
+          id="readme-download"
+          href="README.md"
+          download="Robin-README.md"
+        >
+          Download README
+        </a>
+        <a href="#sound-grid">Skip to the sound grid</a>
+        <button
+          type="button"
+          data-settings-open
+          aria-haspopup="dialog"
+          aria-controls="settings-dialog"
+        >
+          Settings
+        </button>
+      </nav>
     </header>
-
-    <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>
 
     <aside
       class="touch-accessibility-banner touch-only"
@@ -200,12 +216,10 @@
           <div
             class="sound-grid"
             id="sound-grid"
-            role="grid"
+            role="group"
             aria-label="Robin sound grid"
             aria-describedby="grid-help"
-            aria-rowcount="11"
-            aria-colcount="11"
-            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace Tab Shift+Tab 0 S C T D 1 2 3 4 Space Control+A Meta+A Control+Z Meta+Z Control+I Meta+I Control+, Meta+,"
+            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace Tab Shift+Tab 0 S C T D 1 2 3 4 Space Control+A Meta+A Control+Z Meta+Z Control+I Meta+I Control+,"
             tabindex="-1"
           ></div>
           <div class="x-axis" id="x-axis" aria-hidden="true"></div>
@@ -219,7 +233,6 @@
         aria-labelledby="touch-controls-title"
       >
         <header>
-          <p class="wordmark">Robin</p>
           <h2 id="touch-controls-title">Touch controls</h2>
           <p>
             These controls are for touchscreen phones and tablets. There are no
@@ -355,9 +368,12 @@
         </div>
       </section>
 
-      <section class="instructions desktop-only" aria-labelledby="robin-title">
+      <section
+        class="instructions desktop-only"
+        aria-labelledby="about-robin-title"
+      >
         <header>
-          <p class="wordmark" id="robin-title">Robin</p>
+          <h2 id="about-robin-title" tabindex="-1">About Robin</h2>
           <div class="introduction">
             <p>
               Robin is a sonification and visualisation tool for scatter-plot
@@ -453,12 +469,12 @@
               <dd>Import x, y, and optional shape columns from CSV.</dd>
             </div>
             <div>
-              <dt><kbd>Command/Ctrl</kbd> + <kbd>,</kbd></dt>
+              <dt><kbd>Control</kbd> + <kbd>,</kbd></dt>
               <dd>Open sound, playback, and colour settings.</dd>
             </div>
             <div>
               <dt><kbd>Escape</kbd></dt>
-              <dd>Leave the grid so Tab can move through page controls.</dd>
+              <dd>Leave the grid and move to the About Robin explanation.</dd>
             </div>
             <div>
               <dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt>
