@@ -33,11 +33,12 @@ required by iOS to start web audio. Headphones make the left-to-right panning
 easiest to hear.
 
 Every page load starts from Robin's two-point example; the website does not
-restore or autosave browser state. Use **Save JSON** before leaving to download
-a portable project file, **Open JSON** to load one during a session, or **Clear
-map** to start again. The JSON format is compatible with the desktop version.
-Older Robin storage is removed before the application script runs, and an iOS
-page restored from WebKit's back-forward cache also returns to the example.
+restore or autosave map data. Use **Save JSON** or **Save CSV** before leaving,
+**Open JSON** to replace the map, **Import CSV** to add data, or **New map** to
+start again. JSON files preserve drawn strokes for Robin 0.2's connected-line
+playback. Browser settings are saved separately and restored on the next visit.
+Older Robin map storage is removed before the application script runs, and an
+iOS page restored from WebKit's back-forward cache also returns to the example.
 
 ### Browser accessibility
 
@@ -56,6 +57,8 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
   selected.
 - Only the current cell is in the normal tab order, so all 121 cells do not
   create a long tab sequence.
+- While the desktop grid has focus, Tab and Shift+Tab jump between plotted
+  points. Escape releases the grid so Tab can return to ordinary page controls.
 - On desktop, a screen reader announces each cell's x and y coordinates
   followed by any plotted shapes. Empty cells announce only their coordinates.
 - On iOS, VoiceOver controls are an explicit mode, separate from Robin's
@@ -80,8 +83,8 @@ The map is a semantic HTML grid rather than a drawing-only canvas:
   so the complete visible action panel remains the reliable fallback.
 - Changes are reported through a polite live status region.
 - Desktop actions are keyboard-accessible. The touch interface provides shape,
-  plotting, erasing, and playback controls, but no directional pad or keyboard
-  shortcut documentation.
+  plotting, erasing, point navigation, undo, playback, file, and settings
+  controls, but no directional pad or keyboard shortcut documentation.
 - Visible focus indicators are provided.
 - Increased-contrast and reduced-motion browser preferences are respected.
 
@@ -112,25 +115,32 @@ Desktop projects save automatically as JSON files in the `robin projects`
 folder next to `robin.py`. The most recently edited project opens when Robin
 starts.
 
-## Desktop keyboard controls
+## Browser keyboard controls
 
-| Key | Action |
-| --- | --- |
-| Arrow keys | Move one cell and hear its position |
-| `Shift` | Plot the active shape on the current cell |
-| `Shift` + arrow keys | Plot while moving |
-| `Backspace` | Erase the most recently plotted point in the cell |
-| `S` / `C` / `T` / `D` | Select square / circle / triangle / diamond |
-| `1` | Play the current row from left to right |
-| `2` | Play the current column from bottom to top |
-| `3` | Sweep plotted shapes by column |
-| `4` | Sweep plotted shapes by row |
-| `Space` | Turn the display black or restore the graphics |
+| Key                      | Action                                            |
+| ------------------------ | ------------------------------------------------- |
+| Arrow keys               | Move one cell and hear its position               |
+| `Shift`                  | Plot the active shape on the current cell         |
+| `Shift` + arrow keys     | Plot while moving                                 |
+| `Backspace`              | Erase the most recently plotted point in the cell |
+| `Backspace` + arrow keys | Erase while moving                                |
+| `Tab` / `Shift+Tab`      | Jump to the next / previous plotted point         |
+| `0`                      | Return to the centre                              |
+| `Command+A` / `Ctrl+A`   | Select every point; Backspace clears them         |
+| `S` / `C` / `T` / `D`    | Select square / circle / triangle / diamond       |
+| `1`                      | Play the current row from left to right           |
+| `2`                      | Play the current column from bottom to top        |
+| `3`                      | Sweep plotted shapes by column                    |
+| `4`                      | Sweep plotted shapes by row                       |
+| `Space`                  | Turn the display black or restore the graphics    |
+| `Command+N` / `Ctrl+N`   | Start a new empty map                             |
+| `Command+I` / `Ctrl+I`   | Import CSV data                                   |
+| `Command+Z` / `Ctrl+Z`   | Undo one of the last 20 edits                     |
+| `Command+,` / `Ctrl+,`   | Open settings                                     |
+| `Escape`                 | Release grid focus for ordinary page navigation   |
 
-The desktop website uses the keyboard controls above for drawing, erasing,
-shape selection, and playback. The Python version additionally supports
-`Backspace` + arrow keys to erase while moving and `Command+N` or `Ctrl+N` to
-create a named project.
+The on-screen Previous point, Next point, Centre, Undo, Settings, and file
+buttons provide alternatives to the shortcuts.
 
 ## Touchscreen website
 
@@ -139,7 +149,7 @@ On iOS and other touch devices:
 - Every page load starts with a square at x -2, y -2 and a circle at x 2, y 2,
   giving users two visible and audible example points to explore. Website
   changes last for the current session only unless the user chooses **Save
-  JSON**.
+  JSON** or **Save CSV**.
 - With VoiceOver off, the first tap starts Robin audio and plays that cell when
   the finger lifts, without changing it. Keeping one finger down and dragging
   then plays each crossed cell; double-tapping a cell plots the selected shape.
@@ -168,27 +178,54 @@ On iOS and other touch devices:
   point** to erase the most recently plotted shape at the focused coordinates.
 - Use **Play focused row**, **Play focused column**, **Sweep left to right**, or
   **Sweep bottom to top** for the four playback modes.
+- Previous/next point, centre, undo, settings, CSV, and JSON controls are
+  available below the grid.
 - Use **Turn screen off** for presentation mode, then tap the black screen to
   restore it.
 
 ## Shape sounds
 
-| Shape | Sound |
-| --- | --- |
-| Square | Two short taps |
-| Circle | One smooth, rounded tone |
+| Shape    | Sound                    |
+| -------- | ------------------------ |
+| Square   | Two short taps           |
+| Circle   | One smooth, rounded tone |
 | Triangle | Three quick rising notes |
-| Diamond | Four bright sparkles |
+| Diamond  | Four bright sparkles     |
 
 The sound for a plotted shape changes pitch with its row and pans with its
 column. Multiple shapes can be layered on the same cell. Repeated instances of
 the same shape are stored and drawn separately but sound once, preventing an
 accidental volume increase. The highest plotted row is slightly pitch-trimmed
-to keep its shape sounds comfortable.
+to keep its shape sounds comfortable. A Web Audio limiter protects playback
+when several cells or shapes sound together.
+
+When **Smooth connected points** is enabled in Settings, adjoining points of
+the same shape play as one sustained sound during row, column, and sweep
+playback. Shift-drawn strokes retain their order, so sweeps can follow wiggly
+lines; connected imported CSV points are detected automatically.
 
 Erasing removes only the most recently plotted point in a cell and plays a
 short bin sound. Presentation mode plays a falling chime when the display turns
 black and a rising chime when it returns.
+
+## CSV files
+
+CSV import expects `x` and `y` columns and accepts an optional `shape` column.
+Valid shapes are `square`, `circle`, `triangle`, and `diamond`; missing or
+unrecognised values become circles. Coordinates are rounded to whole cells and
+clamped to the grid's −5 to 5 range. Import adds rows to the current map and can
+be undone in one step.
+
+Web browsers do not allow a page to silently overwrite an imported local file.
+**Save CSV** therefore downloads an updated copy containing every later edit.
+
+## Browser settings
+
+Settings cover stereo pan, HRTF vertical space where the browser supports it,
+axis tremolo direction, pentatonic or chord pitch, pitch range, row/column and
+sweep speed, position/point/system volume, connected-line smoothing, and five
+colour themes. Pitch and tremolo modes are exclusive across the two axes, as in
+Robin 0.2. Settings persist in local browser storage; map data does not.
 
 ## Publish with GitHub Pages
 
@@ -207,8 +244,9 @@ keeps deployment simple and prevents Jekyll processing.
 
 ## Project file format
 
-Each project is a JSON object containing a `points` list. Every point has an
-`x`, `y`, and `shapes` value:
+Each project is a JSON object containing a `points` list and an optional
+`strokes` list. Every point has an `x`, `y`, and `shapes` value. Each stroke
+entry stores x, y, and shape in drawing order:
 
 ```json
 {
@@ -218,9 +256,23 @@ Each project is a JSON object containing a `points` list. Every point has an
       "y": 1,
       "shapes": ["circle", "diamond"]
     }
+  ],
+  "strokes": [
+    [
+      [0, 1, "circle"],
+      [1, 1, "circle"]
+    ]
   ]
 }
 ```
 
 Both versions can also read older project files that use a single `shape`
 property instead of the `shapes` list.
+
+## Tests
+
+The data-format and line-grouping tests use Node's built-in test runner:
+
+```bash
+node --test tests/robin-core.test.js
+```

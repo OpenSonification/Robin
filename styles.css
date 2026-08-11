@@ -9,8 +9,14 @@
   --focus: #005fcc;
   --cursor: #d43c16;
   font-family:
-    Arial, Helvetica, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+    Arial,
+    Helvetica,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 }
 
 * {
@@ -51,7 +57,7 @@ button,
 
 button:hover,
 .file-actions label:hover {
-  background: #e9e9e3;
+  background: color-mix(in srgb, var(--ink) 10%, var(--paper));
 }
 
 button:focus-visible,
@@ -333,7 +339,7 @@ kbd {
 }
 
 .grid-cell:hover {
-  background: #f0f0eb;
+  background: color-mix(in srgb, var(--ink) 8%, var(--grid-paper));
 }
 
 .grid-cell.on-x-axis {
@@ -357,6 +363,15 @@ kbd {
   height: 6px;
   background: var(--cursor);
   border-radius: 50%;
+}
+
+.sound-grid.is-all-selected {
+  outline: 5px dashed var(--cursor);
+  outline-offset: 4px;
+}
+
+.sound-grid.is-all-selected .plotted-shape {
+  color: var(--cursor);
 }
 
 .grid-cell:focus-visible {
@@ -453,6 +468,110 @@ kbd {
   border: 0 !important;
 }
 
+.settings-dialog {
+  width: min(92vw, 860px);
+  max-height: min(90vh, 900px);
+  padding: 0;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--line-strong);
+  overflow: auto;
+}
+
+.settings-dialog::backdrop {
+  background: rgb(0 0 0 / 0.65);
+}
+
+.settings-dialog form {
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.settings-dialog header .wordmark {
+  margin-bottom: 0.7rem;
+}
+
+.settings-dialog h2 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+.settings-dialog header > p:last-child {
+  max-width: 46rem;
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.settings-groups {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.settings-groups fieldset {
+  min-width: 0;
+  padding: 1rem;
+  display: grid;
+  align-content: start;
+  gap: 0.85rem;
+  border: 1px solid var(--line);
+}
+
+.settings-groups legend {
+  padding: 0 0.35rem;
+  font-weight: 800;
+}
+
+.settings-groups label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.settings-groups input[type="number"],
+.settings-groups select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.5rem;
+  color: var(--ink);
+  background: var(--grid-paper);
+  border: 1px solid var(--line-strong);
+}
+
+.settings-groups .checkbox-setting {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-content: start;
+}
+
+.settings-groups input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+}
+
+.settings-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.settings-actions button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  font-weight: 800;
+}
+
+.settings-actions button[type="submit"] {
+  color: var(--paper);
+  background: var(--ink);
+}
+
 @media (max-width: 900px) {
   main {
     grid-template-columns: 1fr;
@@ -523,7 +642,7 @@ html[data-interface="touch"] .voiceover-mode-toggle {
 }
 
 html[data-interface="touch"] .voiceover-mode-toggle[aria-pressed="true"] {
-  color: white;
+  color: var(--paper);
   background: var(--ink);
 }
 
@@ -564,7 +683,7 @@ html[data-interface="touch"] .voiceover-actions .voiceover-selected-action {
   max-width: none;
   padding: 0.55rem 0.65rem;
   color: var(--ink);
-  background: #e8f2ff;
+  background: color-mix(in srgb, var(--focus) 18%, var(--paper));
   border-left: 4px solid var(--focus);
   font-size: 0.76rem;
 }
@@ -594,16 +713,19 @@ html[data-interface="touch"] .voiceover-action-buttons {
 }
 
 html[data-interface="touch"] .voiceover-action-buttons .is-selected-action {
-  color: white;
+  color: var(--paper);
   background: var(--focus);
   border-color: var(--focus);
 }
 
-html[data-interface="touch"] .voiceover-action-buttons .is-selected-action:hover {
-  background: #004caa;
+html[data-interface="touch"]
+  .voiceover-action-buttons
+  .is-selected-action:hover {
+  background: color-mix(in srgb, var(--focus) 80%, var(--ink));
 }
 
-html[data-interface="touch"][data-voiceover="on"] [data-standard-touch-actions] {
+html[data-interface="touch"][data-voiceover="on"]
+  [data-standard-touch-actions] {
   display: none;
 }
 
@@ -628,7 +750,7 @@ html[data-interface="touch"] .map-help summary {
 }
 
 html[data-interface="touch"] .map-help summary:hover {
-  background: #e9e9e3;
+  background: color-mix(in srgb, var(--ink) 10%, var(--paper));
 }
 
 html[data-interface="touch"] .map-help summary:focus-visible {
@@ -732,6 +854,7 @@ html[data-interface="touch"] .touch-blackout-toggle {
 }
 
 html[data-interface="touch"] .touch-playback h3,
+html[data-interface="touch"] .touch-navigation h3,
 html[data-interface="touch"] .touch-project h3 {
   margin: 0 0 0.75rem;
   font-size: 0.78rem;
@@ -745,6 +868,20 @@ html[data-interface="touch"] .touch-playback > p {
   color: var(--muted);
   font-size: 0.75rem;
   line-height: 1.5;
+}
+
+html[data-interface="touch"] .navigation-actions {
+  max-width: 28rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+html[data-interface="touch"] .navigation-actions button {
+  min-height: 3rem;
+  padding: 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 @media (max-width: 520px) {
@@ -769,6 +906,10 @@ html[data-interface="touch"] .touch-playback > p {
 
   .plotted-shape {
     font-size: clamp(0.75rem, 5vw, 1.3rem);
+  }
+
+  .settings-groups {
+    grid-template-columns: 1fr;
   }
 }
 

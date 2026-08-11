@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en" data-interface="desktop" data-voiceover="off">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
       content="Robin is an accessible sound grid for drawing and hearing scatter plots."
-    >
-    <meta name="theme-color" content="#f7f7f2">
+    />
+    <meta name="theme-color" content="#f7f7f2" />
     <title>Robin — an accessible sound grid</title>
     <script>
       (() => {
@@ -34,9 +34,10 @@
           coarseTouch || appleTouch ? "touch" : "desktop";
       })();
     </script>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css">
-    <script src="app.js?v=20260807-voiceover-rotor-actions" defer></script>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="robin-core.js?v=20260811-robin-02" defer></script>
+    <script src="app.js?v=20260811-robin-02" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#sound-grid">Skip to the sound grid</a>
@@ -46,8 +47,8 @@
         <header class="map-header">
           <h2 id="map-title">Map</h2>
           <p>
-            x <strong id="cursor-x">0</strong>,
-            y <strong id="cursor-y">0</strong>
+            x <strong id="cursor-x">0</strong>, y
+            <strong id="cursor-y">0</strong>
           </p>
           <div class="map-touch-tools touch-only">
             <button
@@ -62,16 +63,16 @@
             <details class="map-help">
               <summary>Explain the map</summary>
               <p>
-                Robin is an 11 by 11 grid from minus 5 to 5 on both axes.
-                Moving up raises the pitch, and moving left or right moves the
-                sound between your headphones. With VoiceOver off, touch a
-                cell once or drag over the map to hear position tones, then
-                double-tap a cell to plot. With VoiceOver on, first use Turn on
-                VoiceOver controls. Then touch or swipe to focus a cell and
-                hear it without activating it. VoiceOver's double-tap plots
-                the active shape. The focused-cell actions are immediately
-                above the grid. An empty cell plays its position tone on its
-                own; plotted shapes add their sounds on top.
+                Robin is an 11 by 11 grid from minus 5 to 5 on both axes. Moving
+                up raises the pitch, and moving left or right moves the sound
+                between your headphones. With VoiceOver off, touch a cell once
+                or drag over the map to hear position tones, then double-tap a
+                cell to plot. With VoiceOver on, first use Turn on VoiceOver
+                controls. Then touch or swipe to focus a cell and hear it
+                without activating it. VoiceOver's double-tap plots the active
+                shape. The focused-cell actions are immediately above the grid.
+                An empty cell plays its position tone on its own; plotted shapes
+                add their sounds on top.
               </p>
             </details>
             <section
@@ -84,17 +85,17 @@
               <div class="voiceover-actions-body">
                 <p>
                   These actions apply to the most recently focused grid cell.
-                  All actions remain visible. Move VoiceOver focus to an
-                  action to select it, then double-tap to run it. The selected
-                  button turns blue. Circle is the default active shape.
-                  On supported Safari versions, the same commands are also in
-                  the Actions rotor while a grid cell is focused.
+                  All actions remain visible. Move VoiceOver focus to an action
+                  to select it, then double-tap to run it. The selected button
+                  turns blue. Circle is the default active shape. On supported
+                  Safari versions, the same commands are also in the Actions
+                  rotor while a grid cell is focused.
                 </p>
                 <p class="voiceover-selected-action">
                   <strong>Selected action:</strong>
                   <span id="voiceover-selected-action">Plot circle</span>
                 </p>
-                <label for="voiceover-shape">
+                <label>
                   Active shape
                   <select id="voiceover-shape" data-touch-shape>
                     <option value="square">Square</option>
@@ -173,7 +174,7 @@
             aria-describedby="grid-help"
             aria-rowcount="11"
             aria-colcount="11"
-            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace S C T D 1 2 3 4 Space"
+            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace Tab Shift+Tab 0 S C T D 1 2 3 4 Space Control+A Meta+A Control+Z Meta+Z Control+I Meta+I Control+, Meta+,"
             tabindex="-1"
           ></div>
           <div class="x-axis" id="x-axis" aria-hidden="true"></div>
@@ -190,8 +191,8 @@
           <p class="wordmark">Robin</p>
           <h2 id="touch-controls-title">Touch controls</h2>
           <p>
-            These controls are for touchscreen phones and tablets. There are
-            no keyboard or directional-arrow controls in this version.
+            These controls are for touchscreen phones and tablets. There are no
+            keyboard or directional-arrow controls in this version.
           </p>
         </header>
 
@@ -213,15 +214,14 @@
           </li>
           <li>
             On Safari versions that support web rotor actions, keep focus on a
-            grid cell and rotate two fingers until VoiceOver says Actions.
-            Swipe up or down to choose Delete, Play row, Play column, or a
-            sweep, then double-tap. The visible buttons remain available on
-            every browser.
+            grid cell and rotate two fingers until VoiceOver says Actions. Swipe
+            up or down to choose Delete, Play row, Play column, or a sweep, then
+            double-tap. The visible buttons remain available on every browser.
           </li>
         </ol>
 
         <div data-standard-touch-actions>
-          <label class="touch-shape-label" for="touch-shape">
+          <label class="touch-shape-label">
             Shape
             <select id="touch-shape" data-touch-shape>
               <option value="square">Square</option>
@@ -232,44 +232,89 @@
           </label>
 
           <div class="touch-edit-actions">
-            <button id="touch-plot" data-touch-plot type="button">Plot circle</button>
+            <button id="touch-plot" data-touch-plot type="button">
+              Plot circle
+            </button>
             <button id="touch-erase" data-touch-erase type="button">
               Delete focused point
             </button>
           </div>
 
-          <section class="touch-playback" aria-labelledby="touch-playback-title">
+          <section
+            class="touch-playback"
+            aria-labelledby="touch-playback-title"
+          >
             <h3 id="touch-playback-title">Focused cell actions</h3>
             <p>
               These browser-accessible buttons provide the delete and playback
               actions for the cell most recently focused or selected.
             </p>
             <div>
-              <button data-touch-playback="row" type="button">Play focused row</button>
-              <button data-touch-playback="column" type="button">Play focused column</button>
-              <button data-touch-playback="columns" type="button">Sweep left to right</button>
-              <button data-touch-playback="rows" type="button">Sweep bottom to top</button>
+              <button data-touch-playback="row" type="button">
+                Play focused row
+              </button>
+              <button data-touch-playback="column" type="button">
+                Play focused column
+              </button>
+              <button data-touch-playback="columns" type="button">
+                Sweep left to right
+              </button>
+              <button data-touch-playback="rows" type="button">
+                Sweep bottom to top
+              </button>
             </div>
           </section>
         </div>
 
-        <button class="touch-blackout-toggle" data-blackout-toggle type="button">
+        <button
+          class="touch-blackout-toggle"
+          data-blackout-toggle
+          type="button"
+        >
           Turn screen off
         </button>
 
+        <section
+          class="touch-navigation"
+          aria-labelledby="touch-navigation-title"
+        >
+          <h3 id="touch-navigation-title">Map navigation</h3>
+          <div class="navigation-actions">
+            <button data-point-step="-1" type="button">
+              Previous plotted point
+            </button>
+            <button data-point-step="1" type="button">
+              Next plotted point
+            </button>
+            <button data-jump-centre type="button">Go to centre</button>
+            <button data-undo type="button">Undo last edit</button>
+          </div>
+        </section>
+
         <section class="touch-project" aria-labelledby="touch-project-title">
           <h3 id="touch-project-title">Map files</h3>
-          <div class="file-actions" aria-label="Map file controls">
+          <div class="file-actions" role="group" aria-label="Map file controls">
             <label>
               Open JSON
-              <input data-import-project type="file" accept=".json,application/json">
+              <input
+                data-import-project
+                type="file"
+                accept=".json,application/json"
+              />
+            </label>
+            <label>
+              Import CSV
+              <input data-import-csv type="file" accept=".csv,text/csv" />
             </label>
             <button data-export-project type="button">Save JSON</button>
-            <button data-clear-grid type="button">Clear map</button>
+            <button data-export-csv type="button">Save CSV</button>
+            <button data-settings-open type="button">Settings</button>
+            <button data-clear-grid type="button">New empty map</button>
           </div>
           <p class="save-note">
-            Reloading restores the starter map. Use Save JSON before leaving
-            to keep your work; JSON files also work with the Python version.
+            Reloading restores the starter map. Use Save JSON or Save CSV before
+            leaving. A browser cannot overwrite an imported local CSV, so Save
+            CSV downloads an updated copy.
           </p>
         </section>
 
@@ -283,8 +328,8 @@
         <header>
           <p class="wordmark" id="robin-title">Robin</p>
           <p class="introduction">
-            Robin is an 11 by 11 sound grid. Moving up raises the pitch.
-            Moving left or right moves the sound between your headphones.
+            Robin is an 11 by 11 sound grid. Moving up raises the pitch. Moving
+            left or right moves the sound between your headphones.
           </p>
         </header>
 
@@ -312,6 +357,10 @@
               <dd>Remove the most recently plotted point in the cell.</dd>
             </div>
             <div>
+              <dt><kbd>Backspace</kbd> + arrows</dt>
+              <dd>Delete while moving across the grid.</dd>
+            </div>
+            <div>
               <dt><kbd>1</kbd></dt>
               <dd>Play the current row from left to right.</dd>
             </div>
@@ -333,14 +382,40 @@
             </div>
             <div>
               <dt><kbd>Tab</kbd></dt>
-              <dd>Move between the controls on the left.</dd>
+              <dd>Jump to the next plotted point; Shift+Tab goes back.</dd>
+            </div>
+            <div>
+              <dt><kbd>0</kbd></dt>
+              <dd>Return to the centre of the grid.</dd>
+            </div>
+            <div>
+              <dt><kbd>Command/Ctrl</kbd> + <kbd>A</kbd></dt>
+              <dd>Select all points; Backspace then clears them.</dd>
+            </div>
+            <div>
+              <dt><kbd>Command/Ctrl</kbd> + <kbd>Z</kbd></dt>
+              <dd>Undo one of the last 20 edits.</dd>
+            </div>
+            <div>
+              <dt><kbd>Command/Ctrl</kbd> + <kbd>I</kbd></dt>
+              <dd>Import x, y, and optional shape columns from CSV.</dd>
+            </div>
+            <div>
+              <dt><kbd>Command/Ctrl</kbd> + <kbd>,</kbd></dt>
+              <dd>Open sound, playback, and colour settings.</dd>
+            </div>
+            <div>
+              <dt><kbd>Escape</kbd></dt>
+              <dd>Leave the grid so Tab can move through page controls.</dd>
             </div>
             <div>
               <dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt>
               <dd>Use the button that currently has focus.</dd>
             </div>
           </dl>
-          <p class="headphone-note">Headphones make the left-to-right movement easiest to hear.</p>
+          <p class="headphone-note">
+            Headphones make the left-to-right movement easiest to hear.
+          </p>
         </section>
 
         <div class="status" role="status" aria-live="polite" aria-atomic="true">
@@ -348,23 +423,197 @@
           <span data-status-detail hidden></span>
         </div>
 
-        <div class="file-actions" aria-label="File controls">
+        <div class="file-actions" role="group" aria-label="File controls">
           <label>
             Open JSON
-            <input data-import-project type="file" accept=".json,application/json">
+            <input
+              data-import-project
+              type="file"
+              accept=".json,application/json"
+            />
+          </label>
+          <label>
+            Import CSV
+            <input data-import-csv type="file" accept=".csv,text/csv" />
           </label>
           <button data-export-project type="button">Save JSON</button>
-          <button data-clear-grid type="button">Clear map</button>
+          <button data-export-csv type="button">Save CSV</button>
+          <button data-point-step="-1" type="button">Previous point</button>
+          <button data-point-step="1" type="button">Next point</button>
+          <button data-jump-centre type="button">Centre</button>
+          <button data-undo type="button">Undo</button>
+          <button data-settings-open type="button">Settings</button>
+          <button data-clear-grid type="button">New map</button>
         </div>
         <p class="save-note">
-          Reloading restores the starter map. Use Save JSON before leaving to
-          keep your work; JSON files also work with the Python version.
+          Reloading restores the starter map. Save JSON preserves strokes for
+          smooth playback and works with Robin 0.2. Save CSV downloads the
+          current points as x, y, and shape rows.
         </p>
       </section>
-
     </main>
+    <dialog
+      class="settings-dialog"
+      id="settings-dialog"
+      aria-labelledby="settings-title"
+    >
+      <form id="settings-form">
+        <header>
+          <p class="wordmark">Robin</p>
+          <h2 id="settings-title">Settings</h2>
+          <p>
+            Changes preview immediately. Save keeps them on this browser; Cancel
+            restores the previous settings. Hold Shift with a number stepper to
+            jump ten steps.
+          </p>
+        </header>
+
+        <div class="settings-groups">
+          <fieldset>
+            <legend>Left and right</legend>
+            <label class="checkbox-setting">
+              <input id="setting-lr-pan" type="checkbox" />
+              Stereo pan
+            </label>
+            <label>
+              Timbre direction
+              <select id="setting-lr-timbre" data-exclusive="timbre">
+                <option value="none">No tremolo</option>
+                <option value="forward">Smooth left, tremolo right</option>
+                <option value="reverse">Tremolo left, smooth right</option>
+              </select>
+            </label>
+            <label>
+              Pitch style
+              <select id="setting-lr-pitch" data-exclusive="pitch">
+                <option value="none">No pitch change</option>
+                <option value="pentatonic">Pentatonic scale</option>
+                <option value="chord">Atmospheric chord</option>
+              </select>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Up and down</legend>
+            <label class="checkbox-setting">
+              <input id="setting-ud-elevation" type="checkbox" />
+              HRTF vertical space
+            </label>
+            <label>
+              Timbre direction
+              <select id="setting-ud-timbre" data-exclusive="timbre">
+                <option value="none">No tremolo</option>
+                <option value="forward">Smooth low, tremolo high</option>
+                <option value="reverse">Tremolo low, smooth high</option>
+              </select>
+            </label>
+            <label>
+              Pitch style
+              <select id="setting-ud-pitch" data-exclusive="pitch">
+                <option value="none">No pitch change</option>
+                <option value="pentatonic">Pentatonic scale</option>
+                <option value="chord">Atmospheric chord</option>
+              </select>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Playback</legend>
+            <label>
+              Pitch range, 0 to 1
+              <input
+                id="setting-pitch-range"
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+              />
+            </label>
+            <label>
+              Row and column speed, milliseconds
+              <input
+                id="setting-row-speed"
+                type="number"
+                min="20"
+                max="500"
+                step="1"
+              />
+            </label>
+            <label>
+              Sweep speed, milliseconds
+              <input
+                id="setting-sweep-speed"
+                type="number"
+                min="20"
+                max="500"
+                step="1"
+              />
+            </label>
+            <label class="checkbox-setting">
+              <input id="setting-smooth-lines" type="checkbox" />
+              Smooth connected points during playback
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Volume and colour</legend>
+            <label>
+              Position sound volume, 0 to 1
+              <input
+                id="setting-position-volume"
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+              />
+            </label>
+            <label>
+              Plotted points volume, 0 to 1
+              <input
+                id="setting-points-volume"
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+              />
+            </label>
+            <label>
+              System sounds volume, 0 to 1
+              <input
+                id="setting-system-volume"
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+              />
+            </label>
+            <label>
+              Colour theme
+              <select id="setting-colour-theme">
+                <option value="white on black, dark mode">
+                  White on black, dark mode
+                </option>
+                <option value="black on white, light mode">
+                  Black on white, light mode
+                </option>
+                <option value="yellow on black">Yellow on black</option>
+                <option value="blue on black">Blue on black</option>
+                <option value="cream on brown">Cream on brown</option>
+              </select>
+            </label>
+          </fieldset>
+        </div>
+
+        <div class="settings-actions">
+          <button type="submit">Save settings</button>
+          <button data-settings-cancel type="button">Cancel</button>
+        </div>
+      </form>
+    </dialog>
     <button class="blackout-screen" id="blackout-screen" type="button" hidden>
-      <span class="visually-hidden">Screen is off. Tap to turn it back on.</span>
+      <span class="visually-hidden"
+        >Screen is off. Tap to turn it back on.</span
+      >
     </button>
   </body>
 </html>
