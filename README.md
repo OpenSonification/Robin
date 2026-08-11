@@ -70,7 +70,8 @@ recommending the desktop browser or standalone desktop version. The notice
 links to the current standalone Robin 0.2 folder. Both the desktop and touch
 interfaces begin with an obvious **Download README** link. It is the first
 focusable element in the document, appears directly below the **Robin** title,
-and receives focus when the page opens. **Skip to the sound grid** and
+and sits above the introductory text in the desktop page's left-hand column.
+It receives focus when the page opens. **Skip to the sound grid** and
 **Settings** follow it as ordinary, labelled controls so they are available in
 normal VoiceOver navigation before the map.
 
