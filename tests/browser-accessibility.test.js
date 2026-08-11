@@ -19,6 +19,18 @@ test("README, grid skip, and Settings are exposed in that document order", () =>
   assert.ok(skip < settings);
   assert.match(index.slice(settings, settings + 220), /aria-haspopup="dialog"/);
   assert.match(index.slice(settings, settings + 220), /aria-controls="settings-dialog"/);
+  assert.match(index.slice(skip, skip + 100), /data-skip-grid/);
+});
+
+test("Skip to grid moves focus without scrolling the desktop layout", () => {
+  assert.match(
+    app,
+    /event\.preventDefault\(\);[\s\S]*?window\.scrollTo\(0, 0\);[\s\S]*?focusCurrentCell\(\);/,
+  );
+  assert.match(
+    app,
+    /window\.location\.hash !== "#sound-grid"[\s\S]*?window\.history\.replaceState/,
+  );
 });
 
 test("desktop map avoids table row semantics that VoiceOver announces", () => {
