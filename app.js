@@ -129,6 +129,7 @@ const voiceOverSelectedAction = document.querySelector(
   "#voiceover-selected-action",
 );
 const readmeDownload = document.querySelector("#readme-download");
+const skipGridLinks = [...document.querySelectorAll("[data-skip-grid]")];
 const blackoutToggleButtons = [
   ...document.querySelectorAll("[data-blackout-toggle]"),
 ];
@@ -191,6 +192,18 @@ configureGridAccessibility();
 renderGrid({ focus: false });
 announceCurrentCell();
 readmeDownload.focus({ preventScroll: true });
+resetLegacyGridFragment();
+
+function resetLegacyGridFragment() {
+  if (isTouchInterface() || window.location.hash !== "#sound-grid") return;
+  window.history.replaceState(
+    window.history.state,
+    "",
+    `${window.location.pathname}${window.location.search}`,
+  );
+  window.scrollTo(0, 0);
+  window.requestAnimationFrame(() => window.scrollTo(0, 0));
+}
 
 function cloneSettings(value) {
   return JSON.parse(JSON.stringify(value));
@@ -1387,6 +1400,20 @@ function exportCsv() {
 }
 
 function bindEvents() {
+  skipGridLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      // Native fragment navigation scrolls the full-height desktop grid past
+      // its left-column header. Move accessibility focus without changing the
+      // viewport so Robin's title and resource controls remain visible.
+      event.preventDefault();
+      window.scrollTo(0, 0);
+      focusCurrentCell();
+      setStatus(
+        "Sound grid focused.",
+        `Use the arrow keys to explore from x ${cursorX}, y ${cursorY}.`,
+      );
+    });
+  });
   document.querySelectorAll("[data-clear-grid]").forEach((button) => {
     button.addEventListener("click", clearGrid);
   });
