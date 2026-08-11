@@ -1,7 +1,22 @@
 # Robin
 
-Robin is a sonification tool for scatter-plot data. It provides an 11 × 11
-grid, from −5 to 5 on each axis, that can be explored and drawn on using sound.
+Robin is a sonification and visualisation tool for scatter-plot data and bar
+charts, built for blind, visually impaired, and sighted users as part of the
+195th European Study Group with Industry's Sonification project.
+
+Sound points are plotted on an 11 × 11 grid running from −5 to 5 on both axes,
+with zero at the centre. Users can place points individually using one of four
+shapes—circle, square, triangle, or diamond—or draw them continuously as sound
+while moving. Everything is also shown on screen: the cursor is a small circle,
+and each plotted shape is drawn as an outline. Audio and visual settings can be
+modified to suit the user's requirements.
+
+Robin was developed using the VoiceOver screen reader on a MacBook Pro. It has
+been built and tested on macOS but should also work on Windows, and feedback
+from anyone using it with a Windows screen reader such as NVDA or JAWS would be
+welcome. The Sonification team's work at the European Study Group with Industry
+was carried out in memory of Dr Robin Williams, with a report on the research
+currently in development.
 
 Website: <https://opensonification.github.io/Robin/>
 
@@ -48,6 +63,12 @@ map. Touchscreen phones and tablets receive the touch interface, with the map
 first and a dedicated VoiceOver actions panel immediately above it. The
 inactive interface is removed from the layout and accessibility tree, rather
 than merely having its instructions reworded.
+
+Because mobile screen-reader support for the custom grid and rotor actions is
+not yet consistent, touchscreen visitors see an accessibility notice
+recommending the desktop browser or standalone desktop version. The notice
+links to the current standalone Robin 0.2 folder. Both the desktop and touch
+interfaces also provide an obvious **Download README** link.
 
 The map is a semantic HTML grid rather than a drawing-only canvas:
 

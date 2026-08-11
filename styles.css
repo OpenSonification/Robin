@@ -47,7 +47,8 @@ select {
 }
 
 button,
-.file-actions label {
+.file-actions label,
+.file-actions a {
   color: var(--ink);
   background: transparent;
   border: 1px solid var(--line-strong);
@@ -56,14 +57,16 @@ button,
 }
 
 button:hover,
-.file-actions label:hover {
+.file-actions label:hover,
+.file-actions a:hover {
   background: color-mix(in srgb, var(--ink) 10%, var(--paper));
 }
 
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-.file-actions label:focus-within {
+.file-actions label:focus-within,
+.file-actions a:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
@@ -81,6 +84,79 @@ select:focus-visible,
 
 .skip-link:focus {
   transform: translateY(0);
+}
+
+.touch-accessibility-banner {
+  padding: 1.25rem clamp(1rem, 5vw, 2rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 2rem;
+  background: color-mix(in srgb, var(--focus) 10%, var(--paper));
+  border-bottom: 2px solid var(--focus);
+}
+
+.touch-accessibility-banner > div {
+  max-width: 48rem;
+}
+
+.touch-accessibility-banner .banner-label {
+  margin: 0 0 0.35rem;
+  color: var(--focus);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.touch-accessibility-banner h1 {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(1.3rem, 5vw, 1.75rem);
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.touch-accessibility-banner h1 + p {
+  max-width: 46rem;
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.banner-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.banner-actions a {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper);
+  background: var(--focus);
+  border: 2px solid var(--focus);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.banner-actions a:last-child {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.banner-actions a:hover {
+  color: var(--paper);
+  background: color-mix(in srgb, var(--focus) 80%, var(--ink));
+}
+
+.banner-actions a:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
 }
 
 main {
@@ -129,6 +205,14 @@ h1 {
   color: var(--muted);
   font-size: 1rem;
   line-height: 1.6;
+}
+
+.introduction p {
+  margin: 0;
+}
+
+.introduction p + p {
+  margin-top: 1rem;
 }
 
 .instructions h2 {
@@ -211,11 +295,13 @@ kbd {
 }
 
 .file-actions button,
-.file-actions label {
+.file-actions label,
+.file-actions a {
   min-height: 34px;
   padding: 0.45rem 0.65rem;
   display: inline-flex;
   align-items: center;
+  text-decoration: none;
   font-size: 0.7rem;
   font-weight: 700;
 }
@@ -885,6 +971,14 @@ html[data-interface="touch"] .navigation-actions button {
 }
 
 @media (max-width: 520px) {
+  .touch-accessibility-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .banner-actions {
+    grid-template-columns: 1fr;
+  }
+
   .instructions,
   .map-panel,
   .touch-controls {
