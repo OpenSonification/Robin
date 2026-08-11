@@ -133,6 +133,7 @@ const voiceOverActions = document.querySelector("#voiceover-actions");
 const voiceOverSelectedAction = document.querySelector(
   "#voiceover-selected-action",
 );
+const readmeDownload = document.querySelector("#readme-download");
 const blackoutToggleButtons = [
   ...document.querySelectorAll("[data-blackout-toggle]"),
 ];
@@ -192,8 +193,9 @@ loadInitialGrid();
 buildAxes();
 bindEvents();
 configureGridAccessibility();
-renderGrid({ focus: !isTouchInterface() });
+renderGrid({ focus: false });
 announceCurrentCell();
+readmeDownload.focus({ preventScroll: true });
 
 function cloneSettings(value) {
   return JSON.parse(JSON.stringify(value));

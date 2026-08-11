@@ -68,12 +68,14 @@ Because mobile screen-reader support for the custom grid and rotor actions is
 not yet consistent, touchscreen visitors see an accessibility notice
 recommending the desktop browser or standalone desktop version. The notice
 links to the current standalone Robin 0.2 folder. Both the desktop and touch
-interfaces also provide an obvious **Download README** link.
+interfaces begin with an obvious **Download README** link. It is the first
+focusable element in the document and receives focus when the page opens.
 
 The map is a semantic HTML grid rather than a drawing-only canvas:
 
-- On desktop, the focused grid cell receives focus when the page opens, so the
-  arrow keys work immediately.
+- The page opens with focus on **Download README**. The sound grid remains
+  available through the following skip link, and pressing an arrow key also
+  moves focus into the grid.
 - Arrow keys also return focus to the grid after any on-screen control is
   selected.
 - Only the current cell is in the normal tab order, so all 121 cells do not

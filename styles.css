@@ -47,8 +47,7 @@ select {
 }
 
 button,
-.file-actions label,
-.file-actions a {
+.file-actions label {
   color: var(--ink);
   background: transparent;
   border: 1px solid var(--line-strong);
@@ -57,16 +56,14 @@ button,
 }
 
 button:hover,
-.file-actions label:hover,
-.file-actions a:hover {
+.file-actions label:hover {
   background: color-mix(in srgb, var(--ink) 10%, var(--paper));
 }
 
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-.file-actions label:focus-within,
-.file-actions a:focus-visible {
+.file-actions label:focus-within {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
@@ -84,6 +81,37 @@ select:focus-visible,
 
 .skip-link:focus {
   transform: translateY(0);
+}
+
+.top-resource-bar {
+  min-height: 3.5rem;
+  padding: 0.5rem clamp(1rem, 4vw, 2rem);
+  display: flex;
+  align-items: center;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.top-resource-bar a {
+  min-height: 2.35rem;
+  padding: 0.55rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--paper);
+  background: var(--ink);
+  border: 2px solid var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.top-resource-bar a:hover {
+  background: color-mix(in srgb, var(--ink) 82%, var(--paper));
+}
+
+.top-resource-bar a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
 }
 
 .touch-accessibility-banner {
@@ -144,11 +172,6 @@ select:focus-visible,
   text-align: center;
 }
 
-.banner-actions a:last-child {
-  color: var(--ink);
-  background: var(--paper);
-}
-
 .banner-actions a:hover {
   color: var(--paper);
   background: color-mix(in srgb, var(--focus) 80%, var(--ink));
@@ -160,8 +183,8 @@ select:focus-visible,
 }
 
 main {
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: calc(100vh - 3.5rem);
+  min-height: calc(100dvh - 3.5rem);
   display: grid;
   grid-template-columns: minmax(350px, 440px) minmax(0, 1fr);
 }
@@ -169,8 +192,8 @@ main {
 .instructions {
   grid-column: 1;
   grid-row: 1;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(100vh - 3.5rem);
+  height: calc(100dvh - 3.5rem);
   padding: clamp(2rem, 4vw, 4rem);
   border-right: 1px solid var(--ink);
   overflow-y: auto;
@@ -295,13 +318,11 @@ kbd {
 }
 
 .file-actions button,
-.file-actions label,
-.file-actions a {
+.file-actions label {
   min-height: 34px;
   padding: 0.45rem 0.65rem;
   display: inline-flex;
   align-items: center;
-  text-decoration: none;
   font-size: 0.7rem;
   font-weight: 700;
 }
@@ -324,8 +345,8 @@ kbd {
 .map-panel {
   grid-column: 2;
   grid-row: 1;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(100vh - 3.5rem);
+  height: calc(100dvh - 3.5rem);
   min-width: 0;
   padding: clamp(1.5rem, 4vw, 4rem);
   display: grid;
