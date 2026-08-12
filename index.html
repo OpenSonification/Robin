@@ -506,10 +506,12 @@
             With VoiceOver on, plain arrow keys operate Robin. Control and
             Option remain VoiceOver's modifier keys for navigating the page and
             Settings dialog; Robin does not capture those key combinations.
+            The coordinates remain visible, but VoiceOver does not announce
+            them as you move around the sound grid.
           </p>
         </section>
 
-        <div class="status" role="status" aria-live="polite" aria-atomic="true">
+        <div class="status" data-desktop-status>
           <strong data-status-title>x 0, y 0</strong>
           <span data-status-detail hidden></span>
         </div>

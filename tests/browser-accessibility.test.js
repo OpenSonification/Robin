@@ -88,6 +88,19 @@ test("desktop map avoids table row semantics that VoiceOver announces", () => {
   assert.doesNotMatch(app, /row\.className = "grid-row"/);
 });
 
+test("desktop grid status stays visible without live VoiceOver announcements", () => {
+  const desktopStatus = index.indexOf('data-desktop-status');
+  assert.ok(desktopStatus >= 0);
+  assert.doesNotMatch(
+    index.slice(desktopStatus, desktopStatus + 180),
+    /role="status"|aria-live|aria-atomic/,
+  );
+  assert.match(
+    index,
+    /class="status" role="status" aria-live="polite" aria-atomic="true"/,
+  );
+});
+
 test("Robin Settings uses Control-comma and preserves every VoiceOver chord", () => {
   assert.doesNotMatch(index, /Meta\+,/);
   assert.match(app, /event\.ctrlKey[\s\S]*?!event\.metaKey[\s\S]*?!event\.altKey[\s\S]*?event\.key === ","/);
