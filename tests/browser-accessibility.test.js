@@ -8,6 +8,43 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
+
+test("touchscreens initially receive only the unsupported notice", () => {
+  assert.match(index, /dataset\.touchPreview = touchInterface/);
+  assert.match(index, /\? "blocked"\s*: "allowed"/);
+  assert.match(index, /navigator\.maxTouchPoints > 0/);
+  assert.match(app, /touchCapableDevice = navigator\.maxTouchPoints > 0/);
+  assert.match(
+    index,
+    /web browser version is not currently supported on touchscreen/i,
+  );
+  assert.match(index, /desktop web browser on a desktop or\s+laptop/i);
+  assert.match(index, /not fully accessible/i);
+  assert.match(index, /developing a native iOS app/i);
+  assert.match(
+    styles,
+    /data-touch-preview="blocked"[\s\S]*?\.robin-application[\s\S]*?display:\s*none\s*!important/,
+  );
+});
+
+test("the warned touchscreen preview can be deliberately revealed", () => {
+  assert.match(index, /data-touch-preview-open/);
+  assert.match(index, /aria-controls="robin-application"/);
+  assert.match(index, /Continue to touchscreen preview \(not fully accessible\)/);
+  assert.match(app, /function openTouchPreview\(\)/);
+  assert.match(app, /touchPreviewAllowed = true/);
+  assert.match(app, /touchPreviewButton\.hidden = true/);
+  assert.match(app, /touchPreviewStatus\.hidden = false/);
+  assert.match(
+    styles,
+    /\.banner-actions \[hidden\][\s\S]*?display:\s*none\s*!important/,
+  );
+  assert.match(
+    app,
+    /touchPreviewButton\?\.addEventListener\("click", openTouchPreview\)/,
+  );
+});
 
 test("README, grid skip, and Settings are exposed in that document order", () => {
   const readme = index.indexOf('id="readme-download"');

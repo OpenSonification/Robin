@@ -40,6 +40,11 @@ html[data-interface="desktop"] .touch-only {
   display: none !important;
 }
 
+html[data-interface="touch"][data-touch-preview="blocked"]
+  .robin-application {
+  display: none !important;
+}
+
 button,
 input,
 select {
@@ -166,33 +171,81 @@ select:focus-visible,
   line-height: 1.5;
 }
 
+.touch-accessibility-banner h1 ~ p {
+  max-width: 46rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .banner-actions {
+  width: min(100%, 28rem);
   display: grid;
   gap: 0.5rem;
 }
 
-.banner-actions a {
+.banner-actions [hidden] {
+  display: none !important;
+}
+
+.banner-actions a,
+.banner-actions button {
   min-height: 2.75rem;
   padding: 0.65rem 0.8rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--paper);
-  background: var(--focus);
-  border: 2px solid var(--focus);
   font-size: 0.78rem;
   font-weight: 700;
   text-align: center;
 }
 
+.banner-actions a {
+  color: var(--focus);
+  background: var(--grid-paper);
+  border: 2px solid var(--focus);
+}
+
+.banner-actions button {
+  color: var(--paper);
+  background: var(--focus);
+  border: 2px solid var(--focus);
+}
+
 .banner-actions a:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--focus) 12%, var(--paper));
+}
+
+.banner-actions button:hover {
   color: var(--paper);
   background: color-mix(in srgb, var(--focus) 80%, var(--ink));
 }
 
-.banner-actions a:focus-visible {
+.banner-actions a:focus-visible,
+.banner-actions button:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 3px;
+}
+
+.banner-actions p {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  color: var(--ink);
+  background: var(--grid-paper);
+  border-left: 4px solid var(--focus);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+html[data-interface="touch"][data-touch-preview="blocked"]
+  .touch-accessibility-banner {
+  min-height: 100vh;
+  min-height: 100dvh;
+  grid-template-columns: minmax(0, 48rem);
+  align-content: center;
+  justify-content: center;
+  border-bottom: 0;
 }
 
 main {

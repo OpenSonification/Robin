@@ -30,66 +30,94 @@
         const appleTouch =
           /iPad|iPhone|iPod/.test(navigator.userAgent) ||
           (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-        document.documentElement.dataset.interface =
-          coarseTouch || appleTouch ? "touch" : "desktop";
+        const touchCapable = navigator.maxTouchPoints > 0;
+        const touchInterface = coarseTouch || appleTouch || touchCapable;
+        document.documentElement.dataset.interface = touchInterface
+          ? "touch"
+          : "desktop";
+        document.documentElement.dataset.touchPreview = touchInterface
+          ? "blocked"
+          : "allowed";
       })();
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20260811-layout-04" />
+    <link rel="stylesheet" href="styles.css?v=20260812-touch-gate-01" />
     <script src="robin-core.js?v=20260811-robin-03" defer></script>
     <script src="robin-audio.js?v=20260811-robin-03" defer></script>
-    <script src="app.js?v=20260811-robin-04" defer></script>
+    <script src="app.js?v=20260812-touch-gate-01" defer></script>
   </head>
   <body>
-    <header class="top-resource-bar" aria-labelledby="robin-title">
-      <h1 class="wordmark" id="robin-title">Robin</h1>
-      <nav class="top-actions" aria-label="Robin resources and controls">
-        <a
-          class="top-primary-action"
-          id="readme-download"
-          href="README.md"
-          download="Robin-README.md"
-        >
-          Download README
-        </a>
-        <a href="#sound-grid" data-skip-grid>Skip to the sound grid</a>
-        <button
-          type="button"
-          data-settings-open
-          aria-haspopup="dialog"
-          aria-controls="settings-dialog"
-        >
-          Settings
-        </button>
-      </nav>
-    </header>
-
     <aside
       class="touch-accessibility-banner touch-only"
       aria-labelledby="touch-accessibility-title"
     >
       <div>
         <p class="banner-label">Touchscreen accessibility notice</p>
-        <h1 id="touch-accessibility-title">
-          For the best accessible experience, use Robin on a desktop or laptop
+        <h1 id="touch-accessibility-title" tabindex="-1">
+          Robin's web browser version is not currently supported on touchscreen
+          devices
         </h1>
         <p>
-          Robin's touchscreen interface is still in development and may not
-          work consistently with mobile screen readers such as VoiceOver. The
-          desktop browser and standalone desktop versions provide the
-          recommended accessible experience.
+          Please open this website in a desktop web browser on a desktop or
+          laptop for Robin's currently supported and accessible browser
+          experience.
+        </p>
+        <p>
+          The existing touchscreen preview is not fully accessible and may be
+          difficult or impossible to use with VoiceOver and other mobile
+          assistive technologies. We are developing a native iOS app to provide
+          a substantially improved touchscreen and VoiceOver experience.
         </p>
       </div>
-      <nav class="banner-actions" aria-label="Desktop Robin resources">
+      <nav class="banner-actions" aria-label="Alternative Robin options">
+        <button
+          id="touch-preview-continue"
+          data-touch-preview-open
+          type="button"
+          aria-controls="robin-application"
+          aria-expanded="false"
+        >
+          Continue to touchscreen preview (not fully accessible)
+        </button>
+        <p data-touch-preview-status role="status" hidden>
+          The touchscreen preview is now open below. The accessibility warning
+          still applies.
+        </p>
         <a
           href="https://github.com/FreyquencyWave/Robin/tree/main/Robin%20Version%200.2"
         >
-          View the desktop version
+          View standalone desktop Robin
+        </a>
+        <a href="https://github.com/OpenSonification/Robin_iOS">
+          Follow the iOS app development
         </a>
       </nav>
     </aside>
 
-    <main>
+    <div class="robin-application" id="robin-application">
+      <header class="top-resource-bar" aria-labelledby="robin-title">
+        <h1 class="wordmark" id="robin-title">Robin</h1>
+        <nav class="top-actions" aria-label="Robin resources and controls">
+          <a
+            class="top-primary-action"
+            id="readme-download"
+            href="README.md"
+            download="Robin-README.md"
+          >
+            Download README
+          </a>
+          <a href="#sound-grid" data-skip-grid>Skip to the sound grid</a>
+          <button
+            type="button"
+            data-settings-open
+            aria-haspopup="dialog"
+            aria-controls="settings-dialog"
+          >
+            Settings
+          </button>
+        </nav>
+      </header>
+      <main>
       <section class="map-panel" aria-labelledby="map-title">
         <header class="map-header">
           <h2 id="map-title">Map</h2>
@@ -519,8 +547,8 @@
           current points as x, y, and shape rows.
         </p>
       </section>
-    </main>
-    <dialog
+      </main>
+      <dialog
       class="settings-dialog"
       id="settings-dialog"
       aria-labelledby="settings-title"
@@ -677,11 +705,17 @@
           <button data-settings-cancel type="button">Cancel</button>
         </div>
       </form>
-    </dialog>
-    <button class="blackout-screen" id="blackout-screen" type="button" hidden>
-      <span class="visually-hidden"
-        >Screen is off. Tap to turn it back on.</span
+      </dialog>
+      <button
+        class="blackout-screen"
+        id="blackout-screen"
+        type="button"
+        hidden
       >
-    </button>
+        <span class="visually-hidden"
+          >Screen is off. Tap to turn it back on.</span
+        >
+      </button>
+    </div>
   </body>
 </html>
