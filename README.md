@@ -41,11 +41,14 @@ python3 -m http.server 8000
 Then open <http://localhost:8000> in a modern browser. Stop the server with
 `Ctrl+C`.
 
-The browser version uses the Web Audio API. With ordinary touch, the first cell
-tap starts audio and plays that cell. VoiceOver users turn on the dedicated
-VoiceOver controls once before exploring the map; that explicit activation is
-required by iOS to start web audio. Headphones make the left-to-right panning
-easiest to hear.
+The browser version uses the Web Audio API. The supported experience is the
+desktop browser interface. Touchscreen visitors initially see only an
+accessibility notice; they may explicitly open the experimental touchscreen
+preview after acknowledging that it is not fully accessible. In that preview,
+the first ordinary cell tap starts audio and plays that cell. VoiceOver users
+turn on the dedicated VoiceOver controls once before exploring the map; that
+explicit activation is required by iOS to start web audio. Headphones make the
+left-to-right panning easiest to hear.
 
 Every page load starts from Robin's two-point example; the website does not
 restore or autosave map data. Use **Save JSON** or **Save CSV** before leaving,
@@ -58,20 +61,22 @@ iOS page restored from WebKit's back-forward cache also returns to the example.
 ### Browser accessibility
 
 The same website automatically selects one of two separate interfaces. Desktop
-browsers receive the keyboard interface, with shortcut instructions beside the
-map. Touchscreen phones and tablets receive the touch interface, with the map
-first and a dedicated VoiceOver actions panel immediately above it. The
-inactive interface is removed from the layout and accessibility tree, rather
-than merely having its instructions reworded.
+browsers receive the supported keyboard interface, with shortcut instructions
+beside the map. Touchscreen phones and tablets initially receive a blocking
+accessibility notice instead of the software. The notice recommends opening
+the same website in a desktop browser on a desktop or laptop, explains that the
+existing touchscreen preview is not fully accessible, and notes that a native
+iOS app is being developed to improve touchscreen and VoiceOver support.
 
-Because mobile screen-reader support for the custom grid and rotor actions is
-not yet consistent, touchscreen visitors see an accessibility notice
-recommending the desktop browser or standalone desktop version. The notice
-links to the current standalone Robin 0.2 folder. Both the desktop and touch
-interfaces begin with an obvious **Download README** link. It is the first
-focusable element in the document, appears directly below the **Robin** title,
-and sits above the introductory text in the desktop page's left-hand column.
-It receives focus when the page opens. **Skip to the sound grid** and
+The notice links to the standalone Robin 0.2 folder and the native iOS app
+repository. **Continue to touchscreen preview (not fully accessible)** reveals
+the existing touch software only after the visitor deliberately activates it;
+the warning remains visible above the preview. Until then, the application is
+removed from both the visual layout and the accessibility tree. Desktop pages
+begin with an obvious **Download README** link. It is the first focusable
+element in the application, appears directly below the **Robin** title, and
+sits above the introductory text in the desktop page's left-hand column. It
+receives focus when the desktop page opens. **Skip to the sound grid** and
 **Settings** follow it as ordinary, labelled controls so they are available in
 normal VoiceOver navigation before the map.
 
@@ -178,6 +183,11 @@ buttons provide alternatives to the shortcuts.
 
 On iOS and other touch devices:
 
+- The page initially displays only the touchscreen accessibility notice. To
+  use Robin now, open the same address in a desktop web browser on a desktop or
+  laptop. Visitors who choose **Continue to touchscreen preview (not fully
+  accessible)** can still test the existing touch interface, with the warning
+  retained above it. A native iOS app is in active development.
 - Every page load starts with a square at x -2, y -2 and a circle at x 2, y 2,
   giving users two visible and audible example points to explore. Website
   changes last for the current session only unless the user chooses **Save

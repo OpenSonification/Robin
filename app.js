@@ -128,6 +128,14 @@ const voiceOverActions = document.querySelector("#voiceover-actions");
 const voiceOverSelectedAction = document.querySelector(
   "#voiceover-selected-action",
 );
+const robinApplication = document.querySelector("#robin-application");
+const touchAccessibilityTitle = document.querySelector(
+  "#touch-accessibility-title",
+);
+const touchPreviewButton = document.querySelector("[data-touch-preview-open]");
+const touchPreviewStatus = document.querySelector(
+  "[data-touch-preview-status]",
+);
 const readmeDownload = document.querySelector("#readme-download");
 const skipGridLinks = [...document.querySelectorAll("[data-skip-grid]")];
 const blackoutToggleButtons = [
@@ -145,6 +153,7 @@ const touchInterfaceQuery = window.matchMedia(
 const appleTouchDevice =
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const touchCapableDevice = navigator.maxTouchPoints > 0;
 
 let gridCells = new Map();
 let strokes = [];
@@ -181,6 +190,7 @@ let shiftPlotPending = false;
 let settings = loadSettings();
 let settingsBeforeDialog = null;
 let csvDownloadName = "robin-data.csv";
+let touchPreviewAllowed = false;
 
 applyTheme();
 setInterfaceMode(shouldUseTouchInterface());
@@ -191,7 +201,7 @@ bindEvents();
 configureGridAccessibility();
 renderGrid({ focus: false });
 announceCurrentCell();
-readmeDownload.focus({ preventScroll: true });
+focusInitialControl();
 resetLegacyGridFragment();
 
 function resetLegacyGridFragment() {
@@ -420,8 +430,49 @@ function isTouchInterface() {
   return document.documentElement.dataset.interface === "touch";
 }
 
+function isTouchPreviewBlocked() {
+  return (
+    isTouchInterface() &&
+    document.documentElement.dataset.touchPreview === "blocked"
+  );
+}
+
+function syncTouchPreviewGate() {
+  const blocked = isTouchPreviewBlocked();
+  if (robinApplication) {
+    robinApplication.inert = blocked;
+    if (blocked) {
+      robinApplication.setAttribute("aria-hidden", "true");
+    } else {
+      robinApplication.removeAttribute("aria-hidden");
+    }
+  }
+  touchPreviewButton?.setAttribute("aria-expanded", String(!blocked));
+}
+
 function setInterfaceMode(touch) {
   document.documentElement.dataset.interface = touch ? "touch" : "desktop";
+  document.documentElement.dataset.touchPreview =
+    touch && !touchPreviewAllowed ? "blocked" : "allowed";
+  syncTouchPreviewGate();
+}
+
+function focusInitialControl() {
+  const initialControl = isTouchPreviewBlocked()
+    ? touchAccessibilityTitle
+    : readmeDownload;
+  initialControl?.focus({ preventScroll: true });
+}
+
+function openTouchPreview() {
+  if (!isTouchInterface()) return;
+  touchPreviewAllowed = true;
+  setInterfaceMode(true);
+  if (touchPreviewButton) touchPreviewButton.hidden = true;
+  if (touchPreviewStatus) touchPreviewStatus.hidden = false;
+  window.requestAnimationFrame(() => {
+    readmeDownload?.focus({ preventScroll: true });
+  });
 }
 
 function isVoiceOverMode() {
@@ -493,7 +544,7 @@ function toggleVoiceOverMode() {
 }
 
 function shouldUseTouchInterface() {
-  return touchInterfaceQuery.matches || appleTouchDevice;
+  return touchInterfaceQuery.matches || appleTouchDevice || touchCapableDevice;
 }
 
 function loadInitialGrid() {
@@ -1400,6 +1451,7 @@ function exportCsv() {
 }
 
 function bindEvents() {
+  touchPreviewButton?.addEventListener("click", openTouchPreview);
   skipGridLinks.forEach((link) => {
     link.addEventListener("click", (event) => {
       // Native fragment navigation scrolls the full-height desktop grid past
