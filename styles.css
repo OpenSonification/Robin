@@ -742,6 +742,10 @@ kbd {
 }
 
 @media (min-width: 901px) {
+  html[data-interface="desktop"] .robin-application {
+    display: contents;
+  }
+
   html[data-interface="desktop"] body {
     height: 100vh;
     height: 100dvh;
