@@ -158,7 +158,11 @@ With VoiceOver enabled on macOS, use the plain arrow keys to operate and hear
 Robin's sound map. Use Control-Option combinations normally to navigate the
 page and the native controls in the Settings dialog. Robin does not capture any
 Control-Option chord, including VoiceOver arrows, Space, or Shift commands, and
-the map exposes no row or grid-line structure for VoiceOver to announce.
+the map exposes no row or grid-line structure for VoiceOver to announce. The
+visible coordinate and status display continues to update, but it is not a live
+region on desktop, so VoiceOver does not speak coordinates or status messages
+while the keyboard-operated grid is in use. Touchscreen status messages remain
+live in the experimental preview.
 
 | Key                      | Action                                            |
 | ------------------------ | ------------------------------------------------- |
