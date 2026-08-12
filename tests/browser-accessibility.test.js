@@ -34,6 +34,7 @@ test("the warned touchscreen preview can be deliberately revealed", () => {
   assert.match(index, /Continue to touchscreen preview \(not fully accessible\)/);
   assert.match(app, /function openTouchPreview\(\)/);
   assert.match(app, /touchPreviewAllowed = true/);
+  assert.match(app, /touchPreviewAllowed = true;\s*resumeAudioContext\(\)/);
   assert.match(app, /touchPreviewButton\.hidden = true/);
   assert.match(app, /touchPreviewStatus\.hidden = false/);
   assert.match(
@@ -74,12 +75,27 @@ test("desktop map avoids table row semantics that VoiceOver announces", () => {
   assert.doesNotMatch(index, /role="grid"|role="row"|role="gridcell"/);
   assert.doesNotMatch(app, /aria-rowindex|aria-colindex/);
   assert.match(index, /id="sound-grid"[\s\S]*?role="group"/);
+  assert.match(app, /document\.createElement\(touchGrid \? "button" : "span"\)/);
+  assert.match(app, /cell\.setAttribute\("aria-hidden", "true"\)/);
+  assert.match(app, /grid\.tabIndex = 0/);
+  assert.doesNotMatch(app, /row\.className = "grid-row"/);
 });
 
-test("Robin Settings uses Control-comma and preserves VoiceOver arrows", () => {
+test("Robin Settings uses Control-comma and preserves every VoiceOver chord", () => {
   assert.doesNotMatch(index, /Meta\+,/);
   assert.match(app, /event\.ctrlKey[\s\S]*?!event\.metaKey[\s\S]*?!event\.altKey[\s\S]*?event\.key === ","/);
-  assert.match(app, /event\.ctrlKey && event\.altKey && directions\[event\.key\]/);
+  assert.match(app, /if \(event\.ctrlKey && event\.altKey\) return/);
+  assert.ok(
+    app.indexOf("if (event.ctrlKey && event.altKey) return") <
+      app.indexOf('const commandDown = event.metaKey || event.ctrlKey'),
+  );
+});
+
+test("touch VoiceOver works without a separate mode toggle", () => {
+  assert.doesNotMatch(index, /voiceover-mode-toggle|Turn on VoiceOver controls/);
+  assert.doesNotMatch(app, /voiceOverMode|isVoiceOverMode|toggleVoiceOverMode/);
+  assert.match(app, /cell\.setAttribute\("aria-actions", VOICEOVER_ROTOR_ACTIONS\)/);
+  assert.match(index, /class="voiceover-actions"[\s\S]*?VoiceOver cell actions/);
 });
 
 test("the browser loads the standalone-master audio port before the app", () => {

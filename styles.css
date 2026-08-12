@@ -485,16 +485,11 @@ kbd {
   grid-row: 1;
   aspect-ratio: 1;
   display: grid;
+  grid-template-columns: repeat(11, 1fr);
   grid-template-rows: repeat(11, 1fr);
   background: var(--grid-paper);
   border-top: 1px solid var(--line-strong);
   border-left: 1px solid var(--line-strong);
-}
-
-.grid-row {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: repeat(11, 1fr);
 }
 
 .grid-cell {
@@ -509,6 +504,7 @@ kbd {
   border: 0;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  cursor: pointer;
 }
 
 .grid-cell:hover {
@@ -828,14 +824,10 @@ html[data-interface="touch"] .grid-layout {
   width: min(100%, 760px);
 }
 
-html[data-interface="touch"][data-voiceover="off"] .sound-grid {
+html[data-interface="touch"] .sound-grid {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-}
-
-html[data-interface="touch"][data-voiceover="on"] .sound-grid {
-  touch-action: auto;
 }
 
 html[data-interface="touch"] .map-touch-tools {
@@ -847,28 +839,12 @@ html[data-interface="touch"] .map-touch-tools {
   gap: 0.5rem;
 }
 
-html[data-interface="touch"] .voiceover-mode-toggle {
-  min-height: 2.75rem;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-html[data-interface="touch"] .voiceover-mode-toggle[aria-pressed="true"] {
-  color: var(--paper);
-  background: var(--ink);
-}
-
 html[data-interface="touch"] .voiceover-actions {
   flex-basis: 100%;
   padding: 0.85rem;
   display: grid;
   gap: 0.75rem;
   border: 2px solid var(--ink);
-}
-
-html[data-interface="touch"] .voiceover-actions[hidden] {
-  display: none;
 }
 
 html[data-interface="touch"] .voiceover-actions h3 {
@@ -935,11 +911,6 @@ html[data-interface="touch"]
   .voiceover-action-buttons
   .is-selected-action:hover {
   background: color-mix(in srgb, var(--focus) 80%, var(--ink));
-}
-
-html[data-interface="touch"][data-voiceover="on"]
-  [data-standard-touch-actions] {
-  display: none;
 }
 
 html[data-interface="touch"] .map-help {

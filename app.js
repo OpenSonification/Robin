@@ -123,8 +123,6 @@ const touchEraseButtons = [...document.querySelectorAll("[data-touch-erase]")];
 const voiceOverActionButtons = [
   ...document.querySelectorAll("[data-voiceover-action]"),
 ];
-const voiceOverModeToggle = document.querySelector("#voiceover-mode-toggle");
-const voiceOverActions = document.querySelector("#voiceover-actions");
 const voiceOverSelectedAction = document.querySelector(
   "#voiceover-selected-action",
 );
@@ -170,7 +168,6 @@ let audioUnlocked = false;
 let playbackToken = 0;
 let activePlaybackSources = new Set();
 let blackout = false;
-let voiceOverMode = false;
 let selectedVoiceOverActionButton = null;
 let focusPlaybackTimer = null;
 let delayedCellOutput = null;
@@ -194,7 +191,7 @@ let touchPreviewAllowed = false;
 
 applyTheme();
 setInterfaceMode(shouldUseTouchInterface());
-syncVoiceOverMode();
+selectVoiceOverAction(voiceOverActionButtons[0]);
 loadInitialGrid();
 buildAxes();
 bindEvents();
@@ -467,33 +464,13 @@ function focusInitialControl() {
 function openTouchPreview() {
   if (!isTouchInterface()) return;
   touchPreviewAllowed = true;
+  resumeAudioContext();
   setInterfaceMode(true);
   if (touchPreviewButton) touchPreviewButton.hidden = true;
   if (touchPreviewStatus) touchPreviewStatus.hidden = false;
   window.requestAnimationFrame(() => {
     readmeDownload?.focus({ preventScroll: true });
   });
-}
-
-function isVoiceOverMode() {
-  return isTouchInterface() && voiceOverMode;
-}
-
-function syncVoiceOverMode() {
-  document.documentElement.dataset.voiceover = voiceOverMode ? "on" : "off";
-  voiceOverModeToggle.setAttribute("aria-pressed", String(voiceOverMode));
-  voiceOverModeToggle.textContent = voiceOverMode
-    ? "Turn off VoiceOver controls"
-    : "Turn on VoiceOver controls";
-  voiceOverActions.hidden = !voiceOverMode;
-  voiceOverActionButtons.forEach((button) => {
-    button.tabIndex = voiceOverMode ? 0 : -1;
-  });
-  if (voiceOverMode) {
-    selectVoiceOverAction(voiceOverActionButtons[0]);
-  } else {
-    clearSelectedVoiceOverAction();
-  }
 }
 
 function selectVoiceOverAction(button) {
@@ -508,39 +485,6 @@ function selectVoiceOverAction(button) {
   voiceOverSelectedAction.textContent = button.textContent
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function clearSelectedVoiceOverAction() {
-  selectedVoiceOverActionButton = null;
-  voiceOverActionButtons.forEach((button) => {
-    button.classList.remove("is-selected-action");
-  });
-  voiceOverSelectedAction.textContent = "None";
-}
-
-function setVoiceOverMode(enabled, options = {}) {
-  const { unlockAudio = false } = options;
-  voiceOverMode = isTouchInterface() && enabled;
-  cancelPendingFocusPlayback();
-  cancelPlayback();
-  resetDirectTouchGesture();
-  lastDirectTapKey = null;
-  lastDirectTapAt = 0;
-  syncVoiceOverMode();
-  configureGridAccessibility();
-  updateTouchCellAccessibility();
-
-  if (voiceOverMode && unlockAudio) {
-    // iOS requires a real activation before a webpage may start Web Audio.
-    // This native button supplies that one-time activation. Cell focus can
-    // then remain read-only and play sound without requiring a double-tap.
-    resumeAudioContext();
-  }
-}
-
-function toggleVoiceOverMode() {
-  const enabling = !voiceOverMode;
-  setVoiceOverMode(enabling, { unlockAudio: enabling });
 }
 
 function shouldUseTouchInterface() {
@@ -640,27 +584,20 @@ function buildAxes() {
 
 function configureGridAccessibility() {
   if (isTouchInterface()) {
-    // Native buttons are reliably discoverable by VoiceOver touch exploration.
-    // Desktop ARIA grid semantics and roving tabindex can hide cells that are
-    // not already focused, so the touch interface deliberately avoids them.
+    // Native buttons remain available to ordinary VoiceOver navigation without
+    // requiring a separate screen-reader mode.
     grid.setAttribute("role", "group");
-    grid.setAttribute(
-      "aria-label",
-      isVoiceOverMode()
-        ? "Robin sound map. VoiceOver controls on."
-        : "Robin sound map.",
-    );
+    grid.setAttribute("aria-label", "Robin sound map.");
     grid.removeAttribute("aria-describedby");
     grid.removeAttribute("aria-rowcount");
     grid.removeAttribute("aria-colcount");
     grid.removeAttribute("aria-keyshortcuts");
+    grid.tabIndex = -1;
     gridHelp.hidden = true;
   } else {
-    // Desktop Robin uses plain arrow keys for its own map navigation. Exposing
-    // each visual row as an ARIA row caused VoiceOver's Control-Option arrows
-    // to announce "row N of 11" without playing a Robin sound. One labelled
-    // group containing native cell buttons retains every coordinate and shape
-    // name without adding that unrelated table-navigation commentary.
+    // Desktop Robin is one focusable sound map. Its 121 cells are visual only,
+    // so VoiceOver does not traverse artificial rows or announce grid lines.
+    // Plain arrows still drive Robin; Control-Option remains VoiceOver's chord.
     grid.setAttribute("role", "group");
     grid.setAttribute("aria-label", "Robin sound grid");
     grid.setAttribute("aria-describedby", "grid-help");
@@ -670,6 +607,7 @@ function configureGridAccessibility() {
       "aria-keyshortcuts",
       "ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace Tab Shift+Tab 0 S C T D 1 2 3 4 Space Control+A Meta+A Control+Z Meta+Z Control+I Meta+I Control+,",
     );
+    grid.tabIndex = 0;
     gridHelp.hidden = false;
   }
 }
@@ -680,22 +618,17 @@ function renderGrid(options = {}) {
   const fragment = document.createDocumentFragment();
 
   for (let y = GRID_MAX; y >= GRID_MIN; y -= 1) {
-    const row = document.createElement("div");
-    row.className = "grid-row";
-
     for (let x = GRID_MIN; x <= GRID_MAX; x += 1) {
       const shapes = gridCells.get(pointKey(x, y)) || [];
       const current = x === cursorX && y === cursorY;
-      const cell = document.createElement("button");
-      cell.type = "button";
+      const cell = document.createElement(touchGrid ? "button" : "span");
+      if (touchGrid) cell.type = "button";
       cell.className = "grid-cell";
       cell.dataset.x = x;
       cell.dataset.y = y;
-      cell.tabIndex = touchGrid || current ? 0 : -1;
-      setCellAccessibility(cell, x, y, shapes);
+      setCellAccessibility(cell);
       if (current) {
         cell.classList.add("is-current");
-        if (!touchGrid) cell.setAttribute("aria-current", "true");
       }
       if (x === 0) cell.classList.add("on-y-axis");
       if (y === 0) cell.classList.add("on-x-axis");
@@ -719,9 +652,8 @@ function renderGrid(options = {}) {
       } else {
         cell.addEventListener("click", () => selectCell(x, y));
       }
-      row.append(cell);
+      fragment.append(cell);
     }
-    fragment.append(row);
   }
 
   grid.replaceChildren(fragment);
@@ -750,37 +682,25 @@ function renderCellShapes(cell, shapes) {
   }
 }
 
-function cellLabel(x, y, shapes) {
-  // Robin's audio communicates position and contents on touch. VoiceOver mode
-  // uses one short stable name so the control is intelligible but speech does
-  // not repeat coordinates or shapes over the delayed Robin tone.
-  if (isTouchInterface()) return isVoiceOverMode() ? "Cell" : "";
-
-  const contents = describeShapes(shapes);
-  return contents ? `x ${x}, y ${y}, ${contents}` : `x ${x}, y ${y}`;
+function cellLabel() {
+  // Robin's audio communicates position and contents in the touchscreen
+  // preview. A short stable name avoids speaking coordinates over its delayed
+  // tone. Desktop cells are visual-only children of one focusable sound map.
+  return isTouchInterface() ? "Cell" : "";
 }
 
-function setCellAccessibility(cell, x, y, shapes) {
-  cell.setAttribute("aria-label", cellLabel(x, y, shapes));
-  if (isTouchInterface() && isVoiceOverMode()) {
+function setCellAccessibility(cell) {
+  if (isTouchInterface()) {
+    cell.setAttribute("aria-label", cellLabel());
     // aria-actions is a progressive enhancement. WebKit versions that support
     // it expose these existing buttons as UIAccessibilityCustomAction entries
     // in VoiceOver's Actions rotor. Other browsers ignore the relationship and
     // retain the always-visible button panel as the complete fallback.
     cell.setAttribute("aria-actions", VOICEOVER_ROTOR_ACTIONS);
   } else {
+    cell.setAttribute("aria-hidden", "true");
     cell.removeAttribute("aria-actions");
   }
-}
-
-function updateTouchCellAccessibility() {
-  if (!isTouchInterface()) return;
-  grid.querySelectorAll(".grid-cell").forEach((cell) => {
-    const x = Number(cell.dataset.x);
-    const y = Number(cell.dataset.y);
-    const shapes = gridCells.get(pointKey(x, y)) || [];
-    setCellAccessibility(cell, x, y, shapes);
-  });
 }
 
 function describeShapes(shapes) {
@@ -797,6 +717,10 @@ function uniqueShapes(shapes) {
 }
 
 function focusCurrentCell() {
+  if (!isTouchInterface()) {
+    grid.focus({ preventScroll: true });
+    return;
+  }
   const cell = grid.querySelector(`[data-x="${cursorX}"][data-y="${cursorY}"]`);
   cell?.focus({ preventScroll: true });
 }
@@ -831,10 +755,10 @@ function focusTouchCell(x, y, options = {}) {
   updateRenderedCursor();
   cancelPendingFocusPlayback();
 
-  if (isVoiceOverMode() && !immediate) {
-    // VoiceOver focus is exploration, not activation. Play every newly focused
-    // cell after its brief native "Cell, button" announcement. The mode's
-    // explicit start button has already supplied iOS's required audio gesture.
+  if (!immediate) {
+    // Assistive-technology focus is exploration, not activation. The Continue
+    // button supplies iOS's required audio gesture, so every newly focused cell
+    // can play after its brief native "Cell, button" announcement.
     focusPlaybackTimer = window.setTimeout(() => {
       focusPlaybackTimer = null;
       playDirectTouchCell(x, y);
@@ -884,7 +808,6 @@ function playDirectTouchCell(x, y, audioDelayMs = 0, drawing = false) {
 }
 
 function beginDirectTouch(event, x, y) {
-  if (isVoiceOverMode()) return;
   if (event.touches.length !== 1) return;
   const now = performance.now();
   directTouchStartKey = pointKey(x, y);
@@ -903,7 +826,6 @@ function beginDirectTouch(event, x, y) {
 }
 
 function handleDirectTouchMove(event) {
-  if (isVoiceOverMode()) return;
   if (directTouchStartKey === null || event.touches.length !== 1) return;
   event.preventDefault();
   const touch = event.touches[0];
@@ -928,7 +850,6 @@ function handleDirectTouchMove(event) {
 }
 
 function handleDirectTouchEnd() {
-  if (isVoiceOverMode()) return;
   if (directTouchStartKey === null) return;
   const completedKey = directTouchCurrentKey;
   const wasTap = !directTouchMoved && completedKey === directTouchStartKey;
@@ -997,7 +918,6 @@ function trackDelayedCellOutput(output, audioDelayMs) {
 }
 
 function recordPhysicalPointer(event, x, y) {
-  if (isVoiceOverMode()) return;
   if (!event.isPrimary) return;
   lastPhysicalPointerKey = pointKey(x, y);
   lastPhysicalPointerAt = performance.now();
@@ -1018,19 +938,6 @@ function isPhysicalPointerClick(event, x, y, now) {
 }
 
 function handleTouchCellClick(event, x, y) {
-  if (isVoiceOverMode()) {
-    event.preventDefault();
-    // VoiceOver dispatches the native button activation to the cell carrying
-    // accessibility focus. Plot exactly once; focus itself remains read-only.
-    activateTouchCell(
-      x,
-      y,
-      VOICEOVER_CELL_TONE_DELAY_MS,
-      audioContext?.state !== "running",
-    );
-    return;
-  }
-
   const now = performance.now();
   const accessibleActivation = event.detail === 0;
   // Most physical taps are handled by touchstart/touchend. Suppress their
@@ -1054,7 +961,12 @@ function handleTouchCellClick(event, x, y) {
 
   event.preventDefault();
   const unlockAudio = audioContext?.state !== "running";
-  activateTouchCell(x, y, 0, unlockAudio);
+  activateTouchCell(
+    x,
+    y,
+    accessibleActivation ? VOICEOVER_CELL_TONE_DELAY_MS : 0,
+    unlockAudio,
+  );
 }
 
 function handleClickOnlyTouch(x, y, now) {
@@ -1087,11 +999,6 @@ function updateRenderedCursor() {
     const current =
       Number(cell.dataset.x) === cursorX && Number(cell.dataset.y) === cursorY;
     cell.classList.toggle("is-current", current);
-    if (current && !isTouchInterface()) {
-      cell.setAttribute("aria-current", "true");
-    } else {
-      cell.removeAttribute("aria-current");
-    }
   });
   cursorXOutput.textContent = cursorX;
   cursorYOutput.textContent = cursorY;
@@ -1101,7 +1008,7 @@ function updateRenderedCell(x, y) {
   const cell = grid.querySelector(`[data-x="${x}"][data-y="${y}"]`);
   if (!cell) return;
   const shapes = gridCells.get(pointKey(x, y)) || [];
-  setCellAccessibility(cell, x, y, shapes);
+  setCellAccessibility(cell);
   renderCellShapes(cell, shapes);
 }
 
@@ -1540,8 +1447,7 @@ function bindEvents() {
   });
   touchPlotButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      const voiceOverAction =
-        isVoiceOverMode() && button.hasAttribute("data-voiceover-action");
+      const voiceOverAction = button.hasAttribute("data-voiceover-action");
       if (voiceOverAction) cancelPendingFocusPlayback();
       addShapeAtCursor(
         false,
@@ -1552,21 +1458,18 @@ function bindEvents() {
   });
   touchEraseButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      const voiceOverAction =
-        isVoiceOverMode() && button.hasAttribute("data-voiceover-action");
+      const voiceOverAction = button.hasAttribute("data-voiceover-action");
       if (voiceOverAction) cancelPendingFocusPlayback();
       eraseAtCursor(false, voiceOverAction ? VOICEOVER_CELL_TONE_DELAY_MS : 0);
     });
   });
-  voiceOverModeToggle.addEventListener("click", toggleVoiceOverMode);
   blackoutToggleButtons.forEach((button) => {
     button.addEventListener("click", toggleBlackout);
   });
   blackoutScreen.addEventListener("click", toggleBlackout);
   document.querySelectorAll("[data-touch-playback]").forEach((button) => {
     button.addEventListener("click", () => {
-      const voiceOverAction =
-        isVoiceOverMode() && button.hasAttribute("data-voiceover-action");
+      const voiceOverAction = button.hasAttribute("data-voiceover-action");
       if (voiceOverAction) cancelPendingFocusPlayback();
       runPlayback(
         button.dataset.touchPlayback,
@@ -1584,7 +1487,6 @@ function bindEvents() {
   grid.addEventListener("focusout", cancelPendingFocusPlayback);
   const handleTouchInterfaceChange = () => {
     setInterfaceMode(shouldUseTouchInterface());
-    if (!isTouchInterface()) setVoiceOverMode(false);
     configureGridAccessibility();
     renderGrid({ focus: !isTouchInterface() });
   };
@@ -1618,6 +1520,11 @@ function visibleFileInput(inputs) {
 
 function handleKeyDown(event) {
   if (isTouchInterface()) return;
+
+  // Control-Option is the macOS VoiceOver modifier. Robin must leave every VO
+  // chord untouched, including arrows, Space, and Shift combinations, so
+  // VoiceOver can navigate and activate the surrounding controls normally.
+  if (event.ctrlKey && event.altKey) return;
 
   if (
     event.target instanceof HTMLInputElement ||
@@ -1679,11 +1586,6 @@ function handleKeyDown(event) {
   const inGrid =
     event.target instanceof Element && event.target.closest("#sound-grid");
 
-  // Control-Option is VoiceOver's own navigation chord on macOS. Robin must
-  // leave it untouched; the group/button accessibility model above lets
-  // VoiceOver move without announcing artificial row numbers.
-  if (event.ctrlKey && event.altKey && directions[event.key]) return;
-
   if (directions[event.key]) {
     event.preventDefault();
     if (event.shiftKey && shiftPlotPending) {
@@ -1735,6 +1637,11 @@ function handleKeyDown(event) {
 }
 
 function handleKeyUp(event) {
+  if (event.ctrlKey && event.altKey) {
+    shiftPlotPending = false;
+    backspaceHeld = false;
+    return;
+  }
   if (event.key === "Shift") {
     const focusInGrid = document.activeElement?.closest?.("#sound-grid");
     if (shiftPlotPending && focusInGrid && !settingsDialog?.open) {

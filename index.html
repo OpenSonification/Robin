@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-interface="desktop" data-voiceover="off">
+<html lang="en" data-interface="desktop">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -41,10 +41,10 @@
       })();
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20260812-touch-gate-01" />
+    <link rel="stylesheet" href="styles.css?v=20260812-voiceover-native-01" />
     <script src="robin-core.js?v=20260811-robin-03" defer></script>
     <script src="robin-audio.js?v=20260811-robin-03" defer></script>
-    <script src="app.js?v=20260812-touch-gate-01" defer></script>
+    <script src="app.js?v=20260812-voiceover-native-01" defer></script>
   </head>
   <body>
     <aside
@@ -126,15 +126,6 @@
             <strong id="cursor-y">0</strong>
           </p>
           <div class="map-touch-tools touch-only">
-            <button
-              class="voiceover-mode-toggle"
-              id="voiceover-mode-toggle"
-              type="button"
-              aria-pressed="false"
-              aria-controls="voiceover-actions"
-            >
-              Turn on VoiceOver controls
-            </button>
             <details class="map-help">
               <summary>Explain the map</summary>
               <p>
@@ -142,19 +133,18 @@
                 up raises the pitch, and moving left or right moves the sound
                 between your headphones. With VoiceOver off, touch a cell once
                 or drag over the map to hear position tones, then double-tap a
-                cell to plot. With VoiceOver on, first use Turn on VoiceOver
-                controls. Then touch or swipe to focus a cell and hear it
-                without activating it. VoiceOver's double-tap plots the active
-                shape. The focused-cell actions are immediately above the grid.
-                An empty cell plays its position tone on its own; plotted shapes
-                add their sounds on top.
+                cell to plot. With VoiceOver on, use normal touch or swipe
+                navigation to focus a cell and hear it without activating it.
+                VoiceOver's double-tap plots the active shape. The focused-cell
+                actions are immediately above the grid. An empty cell plays its
+                position tone on its own; plotted shapes add their sounds on
+                top.
               </p>
             </details>
             <section
               class="voiceover-actions"
               id="voiceover-actions"
               aria-labelledby="voiceover-actions-title"
-              hidden
             >
               <h3 id="voiceover-actions-title">VoiceOver cell actions</h3>
               <div class="voiceover-actions-body">
@@ -248,7 +238,7 @@
             aria-label="Robin sound grid"
             aria-describedby="grid-help"
             aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift Backspace Tab Shift+Tab 0 S C T D 1 2 3 4 Space Control+A Meta+A Control+Z Meta+Z Control+I Meta+I Control+,"
-            tabindex="-1"
+            tabindex="0"
           ></div>
           <div class="x-axis" id="x-axis" aria-hidden="true"></div>
           <span class="x-label" aria-hidden="true">x</span>
@@ -279,10 +269,10 @@
             cross. Double-tap a cell to plot the selected shape.
           </li>
           <li>
-            With VoiceOver on, activate Turn on VoiceOver controls above the
-            grid once. Touch or swipe to focus cells and hear each one without
-            double-tapping. Double-tap only when you want to plot. Use
-            VoiceOver's standard three-finger swipe to scroll the page.
+            With VoiceOver on, use normal touch or swipe navigation to focus
+            cells and hear each one without double-tapping. Double-tap only
+            when you want to plot. Use VoiceOver's standard three-finger swipe
+            to scroll the page.
           </li>
           <li>
             On Safari versions that support web rotor actions, keep focus on a
@@ -511,6 +501,11 @@
           </dl>
           <p class="headphone-note">
             Headphones make the left-to-right movement easiest to hear.
+          </p>
+          <p class="headphone-note">
+            With VoiceOver on, plain arrow keys operate Robin. Control and
+            Option remain VoiceOver's modifier keys for navigating the page and
+            Settings dialog; Robin does not capture those key combinations.
           </p>
         </section>
 
