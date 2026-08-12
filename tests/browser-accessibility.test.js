@@ -28,6 +28,13 @@ test("touchscreens initially receive only the unsupported notice", () => {
   );
 });
 
+test("the touchscreen gate wrapper is layout-transparent on desktop", () => {
+  assert.match(
+    styles,
+    /@media \(min-width: 901px\)[\s\S]*?html\[data-interface="desktop"\] \.robin-application \{[\s\S]*?display:\s*contents/,
+  );
+});
+
 test("the warned touchscreen preview can be deliberately revealed", () => {
   assert.match(index, /data-touch-preview-open/);
   assert.match(index, /aria-controls="robin-application"/);
